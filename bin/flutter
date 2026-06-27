@@ -1,74 +1,51 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────────────────────────────────
 # Best Catch Buddy - Flutter wrapper
-# Auto-increments version on every `flutter build` command.
-# Bump type: patch (default), minor, or major.
-#   ./bin/flutter build apk           → patch bump (1.0.0 → 1.0.1)
-#   ./bin/flutter build apk --minor   → minor bump (1.0.0 → 1.1.0)
-#   ./bin/flutter build apk --major   → major bump (1.0.0 → 2.0.0)
+# Auto-increments version + uploads APK to GitHub Releases.
 # ──────────────────────────────────────────────────────────────────────────────
 
 REAL_FLUTTER="/home/lou/tools/flutter/bin/flutter"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PUBSPEC="$PROJECT_DIR/pubspec.yaml"
 APP_NAME="BestFishBuddy"
-
-BUMP_TYPE="patch"  # default
+BUMP_TYPE="patch"
 FLUTTER_ARGS=()
 
-# Parse arguments — look for --patch, --minor, --major
+# Read GitHub token from local file (not committed)
+GITHUB_TOKEN_FILE="$PROJECT_DIR/.github_token"
+GITHUB_TOKEN=""
+if [[ -f "$GITHUB_TOKEN_FILE" ]]; then
+  GITHUB_TOKEN=$(cat "$GITHUB_TOKEN_FILE" | tr -d ' \n')
+fi
+
 for arg in "$@"; do
   case "$arg" in
-    --patch|--minor|--major)
-      BUMP_TYPE="${arg#--}"
-      ;;
-    *)
-      FLUTTER_ARGS+=("$arg")
-      ;;
+    --patch|--minor|--major) BUMP_TYPE="${arg#--}" ;;
+    *) FLUTTER_ARGS+=("$arg") ;;
   esac
 done
 
 NEW_VERSION=""
 
-# ── Only intercept build commands ─────────────────────────────────────────────
 if [[ "${FLUTTER_ARGS[0]}" == "build" ]]; then
   current_version=$(grep "^version: " "$PUBSPEC" | sed 's/version: //')
-  # Strip any trailing +build if present (legacy format)
   current_version="${current_version%%+*}"
-
   if [[ "$current_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-    major="${BASH_REMATCH[1]}"
-    minor="${BASH_REMATCH[2]}"
-    patch="${BASH_REMATCH[3]}"
-
+    major="${BASH_REMATCH[1]}"; minor="${BASH_REMATCH[2]}"; patch="${BASH_REMATCH[3]}"
     case "$BUMP_TYPE" in
-      major)
-        major=$((major + 1))
-        minor=0
-        patch=0
-        ;;
-      minor)
-        minor=$((minor + 1))
-        patch=0
-        ;;
-      patch)
-        patch=$((patch + 1))
-        ;;
+      major) major=$((major + 1)); minor=0; patch=0 ;;
+      minor) minor=$((minor + 1)); patch=0 ;;
+      patch) patch=$((patch + 1)) ;;
     esac
-
     NEW_VERSION="${major}.${minor}.${patch}"
   else
     NEW_VERSION="1.0.1"
   fi
-
-  # Update pubspec.yaml
   if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' "s/^version: .*/version: $NEW_VERSION/" "$PUBSPEC"
   else
     sed -i "s/^version: .*/version: $NEW_VERSION/" "$PUBSPEC"
   fi
-
-  # Show what happened
   case "$BUMP_TYPE" in
     major) echo "🚀 Major bump → $NEW_VERSION" >&2 ;;
     minor) echo "✨ Minor bump → $NEW_VERSION" >&2 ;;
@@ -76,17 +53,44 @@ if [[ "${FLUTTER_ARGS[0]}" == "build" ]]; then
   esac
 fi
 
-# ── Delegate to real Flutter ──────────────────────────────────────────────────
 "$REAL_FLUTTER" "${FLUTTER_ARGS[@]}"
 FLUTTER_EXIT=$?
 
-# ── Copy APK with app name + version on success ──────────────────────────────
 if [[ $FLUTTER_EXIT -eq 0 && -n "$NEW_VERSION" ]]; then
   APK_SOURCE="$PROJECT_DIR/build/app/outputs/flutter-apk/app-release.apk"
   APK_TARGET="$PROJECT_DIR/build/app/outputs/flutter-apk/${APP_NAME}-v${NEW_VERSION}.apk"
   if [[ -f "$APK_SOURCE" ]]; then
     cp "$APK_SOURCE" "$APK_TARGET"
     echo "📁 Saved: ${APP_NAME}-v${NEW_VERSION}.apk" >&2
+  fi
+
+  # ── Upload to GitHub Releases ──────────────────────────────────────────────
+  if [[ -n "$GITHUB_TOKEN" ]] && command -v git &>/dev/null && git -C "$PROJECT_DIR" rev-parse --git-dir &>/dev/null; then
+    REMOTE_URL=$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null)
+    if [[ -n "$REMOTE_URL" && "$REMOTE_URL" == *github.com* ]]; then
+      REPO=$(echo "$REMOTE_URL" | sed -n 's|.*github.com/\([^/]*/[^/.]*\).*|\1|p')
+      TAG="v$NEW_VERSION"
+      echo "🚀 Uploading to GitHub: $REPO $TAG" >&2
+
+      # Delete tag if it already exists locally
+      git -C "$PROJECT_DIR" tag -d "$TAG" 2>/dev/null || true
+
+      RELEASE_ID=$(curl -s -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"tag_name\":\"$TAG\",\"name\":\"$APP_NAME $TAG\",\"draft\":false,\"prerelease\":false}" \
+        "https://api.github.com/repos/$REPO/releases" 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+
+      if [[ -n "$RELEASE_ID" ]] && [[ "$RELEASE_ID" != "0" ]]; then
+        curl -s -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/vnd.android.package-archive" \
+          --data-binary @"$APK_TARGET" \
+          "https://uploads.github.com/repos/$REPO/releases/$RELEASE_ID/assets?name=${APP_NAME}-v${NEW_VERSION}.apk" \
+          -o /dev/null 2>/dev/null
+        echo "✅ APK uploaded to GitHub release" >&2
+      fi
+    fi
   fi
 fi
 
