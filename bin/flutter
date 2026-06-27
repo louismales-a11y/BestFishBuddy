@@ -1,0 +1,93 @@
+#!/bin/bash
+# ──────────────────────────────────────────────────────────────────────────────
+# Best Catch Buddy - Flutter wrapper
+# Auto-increments version on every `flutter build` command.
+# Bump type: patch (default), minor, or major.
+#   ./bin/flutter build apk           → patch bump (1.0.0 → 1.0.1)
+#   ./bin/flutter build apk --minor   → minor bump (1.0.0 → 1.1.0)
+#   ./bin/flutter build apk --major   → major bump (1.0.0 → 2.0.0)
+# ──────────────────────────────────────────────────────────────────────────────
+
+REAL_FLUTTER="/home/lou/tools/flutter/bin/flutter"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PUBSPEC="$PROJECT_DIR/pubspec.yaml"
+APP_NAME="BestFishBuddy"
+
+BUMP_TYPE="patch"  # default
+FLUTTER_ARGS=()
+
+# Parse arguments — look for --patch, --minor, --major
+for arg in "$@"; do
+  case "$arg" in
+    --patch|--minor|--major)
+      BUMP_TYPE="${arg#--}"
+      ;;
+    *)
+      FLUTTER_ARGS+=("$arg")
+      ;;
+  esac
+done
+
+NEW_VERSION=""
+
+# ── Only intercept build commands ─────────────────────────────────────────────
+if [[ "${FLUTTER_ARGS[0]}" == "build" ]]; then
+  current_version=$(grep "^version: " "$PUBSPEC" | sed 's/version: //')
+  # Strip any trailing +build if present (legacy format)
+  current_version="${current_version%%+*}"
+
+  if [[ "$current_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    major="${BASH_REMATCH[1]}"
+    minor="${BASH_REMATCH[2]}"
+    patch="${BASH_REMATCH[3]}"
+
+    case "$BUMP_TYPE" in
+      major)
+        major=$((major + 1))
+        minor=0
+        patch=0
+        ;;
+      minor)
+        minor=$((minor + 1))
+        patch=0
+        ;;
+      patch)
+        patch=$((patch + 1))
+        ;;
+    esac
+
+    NEW_VERSION="${major}.${minor}.${patch}"
+  else
+    NEW_VERSION="1.0.1"
+  fi
+
+  # Update pubspec.yaml
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s/^version: .*/version: $NEW_VERSION/" "$PUBSPEC"
+  else
+    sed -i "s/^version: .*/version: $NEW_VERSION/" "$PUBSPEC"
+  fi
+
+  # Show what happened
+  case "$BUMP_TYPE" in
+    major) echo "🚀 Major bump → $NEW_VERSION" >&2 ;;
+    minor) echo "✨ Minor bump → $NEW_VERSION" >&2 ;;
+    patch) echo "📦 Patch bump → $NEW_VERSION" >&2 ;;
+  esac
+fi
+
+# ── Delegate to real Flutter ──────────────────────────────────────────────────
+"$REAL_FLUTTER" "${FLUTTER_ARGS[@]}"
+FLUTTER_EXIT=$?
+
+# ── Copy APK with app name + version on success ──────────────────────────────
+if [[ $FLUTTER_EXIT -eq 0 && -n "$NEW_VERSION" ]]; then
+  APK_SOURCE="$PROJECT_DIR/build/app/outputs/flutter-apk/app-release.apk"
+  APK_TARGET="$PROJECT_DIR/build/app/outputs/flutter-apk/${APP_NAME}-v${NEW_VERSION}.apk"
+  if [[ -f "$APK_SOURCE" ]]; then
+    cp "$APK_SOURCE" "$APK_TARGET"
+    echo "📁 Saved: ${APP_NAME}-v${NEW_VERSION}.apk" >&2
+  fi
+fi
+
+exit $FLUTTER_EXIT
