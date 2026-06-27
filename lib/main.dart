@@ -1,21 +1,32 @@
-import 'dart:io' show Platform;
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_native_badge/flutter_native_badge.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:quick_actions/quick_actions.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'screens/add_catch_screen.dart';
 import 'screens/catches_screen.dart';
 import 'screens/counter_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/how_to_use_screen.dart';
 import 'screens/about_screen.dart';
 import 'screens/stats_screen.dart';
+import 'screens/encyclopedia_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/cloud_sync_screen.dart';
 import 'screens/gallery_screen.dart';
+import 'services/database_service.dart';
+import 'services/firebase_sync.dart';
 import 'services/theme_provider.dart';
 import 'models/theme_presets.dart';
 import 'widgets/water_background.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  FirebaseSyncService.instance.initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -288,6 +299,91 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 // ─── Theme Selector Bottom Sheet ──────────────────────────────────────────────
+void _showSizeChart(BuildContext context) {
+  final species = [
+    ('Bass (Largemouth)', '30-50 cm', '1-5 kg'),
+    ('Bass (Smallmouth)', '25-45 cm', '1-3 kg'),
+    ('Bass (Striped)', '50-100 cm', '5-20 kg'),
+    ('Bluegill', '15-25 cm', '0.1-0.5 kg'),
+    ('Crappie', '20-30 cm', '0.2-0.5 kg'),
+    ('Northern Pike', '50-100 cm', '2-10 kg'),
+    ('Muskellunge', '70-130 cm', '5-20 kg'),
+    ('Walleye', '30-60 cm', '1-4 kg'),
+    ('Yellow Perch', '15-30 cm', '0.1-0.5 kg'),
+    ('Rainbow Trout', '25-50 cm', '0.5-3 kg'),
+    ('Brook Trout', '20-40 cm', '0.2-2 kg'),
+    ('Lake Trout', '40-80 cm', '2-10 kg'),
+    ('Atlantic Salmon', '50-90 cm', '3-10 kg'),
+    ('Chinook Salmon', '60-100 cm', '5-20 kg'),
+    ('Coho Salmon', '45-70 cm', '3-8 kg'),
+    ('Catfish (Channel)', '30-60 cm', '1-5 kg'),
+    ('Carp', '40-80 cm', '2-10 kg'),
+    ('Cod', '50-100 cm', '3-15 kg'),
+    ('Halibut', '80-200 cm', '10-100 kg'),
+    ('Tuna (Bluefin)', '150-300 cm', '100-400 kg'),
+  ];
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Fish Size Chart'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: species.map((s) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(children: [
+                Expanded(flex: 3, child: Text(s.$1, style: const TextStyle(fontSize: 13))),
+                Expanded(flex: 2, child: Text(s.$2, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+                Expanded(flex: 2, child: Text(s.$3, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+              ]),
+            )).toList(),
+          ),
+        ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))],
+    ),
+  );
+}
+
+Future<void> _exportCsv(BuildContext context) async {
+  try {
+    final catches = await DatabaseService.instance.getCatches();
+    if (catches.isEmpty) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No catches to export')));
+      return;
+    }
+    final rows = <List<String>>[
+      ['Species', 'Angler', 'Weight', 'Unit', 'Length', 'Length Unit', 'Location', 'Lure', 'Notes', 'Trip', 'Temperature', 'Conditions', 'Date'],
+    ];
+    for (final c in catches) {
+      rows.add([
+        c.species, c.angler,
+        c.weight?.toStringAsFixed(2) ?? '', c.weightUnit,
+        c.length?.toStringAsFixed(1) ?? '', c.lengthUnit,
+        c.location, c.lure, c.notes ?? '', c.tripName ?? '',
+        c.weatherTemp?.round().toString() ?? '', c.weatherCondition ?? '',
+        DateFormat('yyyy-MM-dd HH:mm').format(c.caughtAt),
+      ]);
+    }
+    final csv = rows.map((r) => r.map((c) => '"${c.replaceAll('"', '""')}"').join(',')).join('\n');
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/BestFishBuddy_export.csv');
+    await file.writeAsString(csv);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported to ${file.path}')),
+      );
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export error: $e'), backgroundColor: Colors.red));
+    }
+  }
+}
+
 void showThemeSelector(BuildContext context) {
   final tp = context.read<ThemeProvider>();
   showModalBottomSheet(
@@ -321,6 +417,15 @@ void showThemeSelector(BuildContext context) {
                 onTap: () { tp.setPreset(i); Navigator.pop(ctx); },
               );
             }),
+            const Divider(height: 1),
+            SwitchListTile(
+              title: const Text('Auto Dark Mode'),
+              subtitle: const Text('Dark 8PM–7AM, Light 7AM–8PM'),
+              value: tp.autoDark,
+              activeColor: tp.preset.primary,
+              onChanged: (v) { tp.setAutoDark(v); if (v) Navigator.pop(ctx); },
+              secondary: Icon(tp.autoDark ? Icons.nightlight_round : Icons.light_mode, color: tp.preset.primary),
+            ),
           ],
         ),
       ),
@@ -338,7 +443,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   @override
-  void initState() { super.initState(); _tabController = TabController(length: 3, vsync: this); }
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _updateBadge();
+  }
+
+  Future<void> _updateBadge() async {
+    try {
+      final count = await DatabaseService.instance.getCatchCount();
+      if (count > 0) {
+        await FlutterNativeBadge.setBadgeCount(count);
+      } else {
+        await FlutterNativeBadge.clearBadgeCount();
+      }
+    } catch (_) {}
+  }
   @override
   void dispose() { _tabController.dispose(); super.dispose(); }
 
@@ -347,6 +467,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     AppColors.applyPreset(themeProvider.preset);
+
+    // Home screen quick actions
+    try {
+      final qa = QuickActions();
+      qa.setShortcutItems([
+        const ShortcutItem(type: 'add_catch', localizedTitle: 'Add Catch', icon: 'ic_launcher'),
+      ]);
+      qa.initialize((type) {
+        if (type == 'add_catch' && context.mounted) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => AddCatchScreen()));
+        }
+      });
+    } catch (_) {}
 
     return Scaffold(
       appBar: AppBar(
@@ -358,9 +491,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Image.asset('assets/logo.png', fit: BoxFit.cover)),
           ),
           const SizedBox(width: 10),
-          const Text('Best Fish Buddy'),
+          Flexible(child: const Text('Best Fish Buddy', overflow: TextOverflow.ellipsis)),
         ]),
         actions: [
+          // Cloud sync status
+          IconButton(
+            icon: Icon(
+              FirebaseSyncService.instance.isLoggedIn ? Icons.cloud_done : Icons.cloud_off,
+              color: FirebaseSyncService.instance.isLoggedIn ? Colors.green : Colors.grey,
+              size: 20,
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+            ),
+            tooltip: FirebaseSyncService.instance.isLoggedIn ? 'Cloud sync active' : 'Cloud sync off',
+          ),
           Consumer<ThemeProvider>(builder: (_, tp, __) => IconButton(
             icon: AnimatedSwitcher(duration: const Duration(milliseconds: 300),
               child: tp.isDark ? const Icon(Icons.light_mode, key: ValueKey('light')) : const Icon(Icons.dark_mode, key: ValueKey('dark'))),
@@ -370,14 +516,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (v) {
+              if (v == 'howto') Navigator.push(context, MaterialPageRoute(builder: (_) => const HowToUseScreen()));
+              if (v == 'about') Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+              if (v == 'export') _exportCsv(context);
+              if (v == 'size') _showSizeChart(context);
+              if (v == 'encyclopedia') Navigator.push(context, MaterialPageRoute(builder: (_) => EncyclopediaScreen()));
+              if (v == 'cloud') Navigator.push(context, MaterialPageRoute(builder: (_) => const CloudSyncScreen()));
               if (v == 'stats') Navigator.push(context, MaterialPageRoute(builder: (_) => const StatsScreen()));
               if (v == 'gallery') Navigator.push(context, MaterialPageRoute(builder: (_) => const GalleryScreen()));
               if (v == 'theme') showThemeSelector(context);
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'stats', child: ListTile(leading: Icon(Icons.bar_chart), title: Text('Statistics'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
               const PopupMenuItem(value: 'gallery', child: ListTile(leading: Icon(Icons.photo_library), title: Text('Photo Gallery'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'stats', child: ListTile(leading: Icon(Icons.bar_chart), title: Text('Statistics'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
               const PopupMenuItem(value: 'theme', child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('Choose Theme'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'howto', child: ListTile(leading: Icon(Icons.menu_book), title: Text('How to Use'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'export', child: ListTile(leading: Icon(Icons.file_download), title: Text('Export CSV'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              PopupMenuItem(value: 'cloud', child: ListTile(
+                leading: Icon(FirebaseSyncService.instance.isLoggedIn ? Icons.cloud_done : Icons.cloud_sync, color: FirebaseSyncService.instance.isLoggedIn ? Colors.green : null),
+                title: Text(FirebaseSyncService.instance.isLoggedIn ? 'Signed in as ${FirebaseSyncService.instance.user!.email!.split('@').first}' : 'Cloud Sync'),
+                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'encyclopedia', child: ListTile(leading: Icon(Icons.menu_book), title: Text('Species Encyclopedia'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'size', child: ListTile(leading: Icon(Icons.straighten), title: Text('Fish Size Chart'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
+              const PopupMenuItem(value: 'about', child: ListTile(leading: Icon(Icons.info_outline), title: Text('About'), dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero)),
             ],
           ),
         ],
@@ -400,9 +561,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 indicator: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                 ),
-                indicatorSize: TabBarIndicatorSize.tab, dividerHeight: 0,
+                indicatorSize: TabBarIndicatorSize.tab, dividerHeight: 0, isScrollable: true,
                 labelColor: AppColors.primary,
                 unselectedLabelColor: colorScheme.brightness == Brightness.dark ? Colors.grey.shade500 : Colors.white54,
                 labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.5),

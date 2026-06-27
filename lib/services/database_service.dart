@@ -106,6 +106,12 @@ class DatabaseService {
 
   // ---- Catches ----
 
+  Future<int> getCatchCount() async {
+    final db = await database;
+    final result = await db.rawQuery('SELECT COUNT(*) as c FROM catches');
+    return result.first['c'] as int? ?? 0;
+  }
+
   Future<List<Catch>> getCatches() async {
     final db = await database;
     final maps = await db.query('catches', orderBy: 'created_at DESC');

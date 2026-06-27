@@ -47,16 +47,29 @@ class _CatchesScreenState extends State<CatchesScreen> {
   String _recordType = 'weight';
   String _searchQuery = '';
   final _searchCtrl = TextEditingController();
+  String _sortBy = 'date_desc'; // date_desc, date_asc, species, weight, angler
 
   List<Catch> get _filteredCatches {
-    if (_searchQuery.isEmpty) return _catches;
-    final q = _searchQuery.toLowerCase();
-    return _catches.where((c) =>
-      c.species.toLowerCase().contains(q) ||
-      c.angler.toLowerCase().contains(q) ||
-      c.location.toLowerCase().contains(q) ||
-      c.lure.toLowerCase().contains(q)
-    ).toList();
+    var list = _catches.toList();
+    // Filter
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((c) =>
+        c.species.toLowerCase().contains(q) ||
+        c.angler.toLowerCase().contains(q) ||
+        c.location.toLowerCase().contains(q) ||
+        c.lure.toLowerCase().contains(q)
+      ).toList();
+    }
+    // Sort
+    switch (_sortBy) {
+      case 'date_asc': list.sort((a, b) => a.caughtAt.compareTo(b.caughtAt)); break;
+      case 'species': list.sort((a, b) => a.species.compareTo(b.species)); break;
+      case 'weight': list.sort((a, b) => (b.weight ?? 0).compareTo(a.weight ?? 0)); break;
+      case 'angler': list.sort((a, b) => a.angler.compareTo(b.angler)); break;
+      default: list.sort((a, b) => b.caughtAt.compareTo(a.caughtAt)); // date_desc
+    }
+    return list;
   }
 
   Map<String, List<Catch>> get _groupedCatches {
@@ -149,6 +162,21 @@ class _CatchesScreenState extends State<CatchesScreen> {
                           contentPadding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                         onChanged: (v) => setState(() => _searchQuery = v),
+                      ),
+                    ),
+                    // Sort chips
+                    SizedBox(
+                      height: 32,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        children: [
+                          _sortChip('Newest', 'date_desc'),
+                          _sortChip('Oldest', 'date_asc'),
+                          _sortChip('Species', 'species'),
+                          _sortChip('Weight', 'weight'),
+                          _sortChip('Angler', 'angler'),
+                        ],
                       ),
                     ),
                     Expanded(
@@ -285,7 +313,7 @@ class _CatchesScreenState extends State<CatchesScreen> {
               ),
               border: Border.all(
                 color: AppColors.tertiary.withValues(alpha: 0.3),
-                width: 1.5,
+                width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
@@ -463,7 +491,7 @@ class _CatchesScreenState extends State<CatchesScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: color.withValues(alpha: 0.15),
-            width: 1.2,
+            width: 1.0,
           ),
         ),
         child: Column(
@@ -509,6 +537,29 @@ class _CatchesScreenState extends State<CatchesScreen> {
           fontSize: 12, fontWeight: FontWeight.w700,
           color: cs.onSurface.withValues(alpha: isDark ? 0.5 : 0.4),
           letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _sortChip(String label, String value) {
+    final selected = _sortBy == value;
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: () => setState(() => _sortBy = value),
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? AppColors.primary.withValues(alpha: 0.3) : cs.onSurface.withValues(alpha: 0.15)),
+        ),
+        child: Text(label,
+          style: TextStyle(
+            fontSize: 11, fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.primary : cs.onSurface.withValues(alpha: 0.5),
+          ),
         ),
       ),
     );
@@ -577,16 +628,19 @@ class _CatchesScreenState extends State<CatchesScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Row(children: [
-                      Expanded(child: Text(c.species, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colorScheme.onSurface))),
-                      Text(c.angler, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withValues(alpha: 0.5))),
+                      Expanded(child: Text(c.species, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colorScheme.onSurface), overflow: TextOverflow.ellipsis)),
+                      Flexible(child: Text(c.angler, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colorScheme.onSurface.withValues(alpha: 0.5)), overflow: TextOverflow.ellipsis)),
                     ]),
                     const SizedBox(height: 6),
-                    Row(children: [
-                      if (c.location.isNotEmpty) ...[Icon(Icons.location_on, size: 13, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.location, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5))), const SizedBox(width: 12)],
-                      if (c.weight != null) ...[Icon(Icons.monitor_weight, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.weightDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5))), const SizedBox(width: 12)],
-                      if (c.length != null) ...[Icon(Icons.straighten, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.lengthDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)))],
-                      if (c.weatherTemp != null) ...[Icon(Icons.wb_sunny, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.weatherDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)))],
-                    ]),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        if (c.location.isNotEmpty) ...[Icon(Icons.location_on, size: 13, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.location, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5))), const SizedBox(width: 12)],
+                        if (c.weight != null) ...[Icon(Icons.monitor_weight, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.weightDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5))), const SizedBox(width: 12)],
+                        if (c.length != null) ...[Icon(Icons.straighten, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.lengthDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)))],
+                        if (c.weatherTemp != null) ...[Icon(Icons.wb_sunny, size: 12, color: colorScheme.onSurface.withValues(alpha: 0.4)), const SizedBox(width: 2), Text(c.weatherDisplay, style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withValues(alpha: 0.5)))],
+                      ]),
+                    ),
                     const SizedBox(height: 2),
                     Row(children: [
                       Icon(Icons.access_time, size: 11, color: colorScheme.onSurface.withValues(alpha: 0.35)),

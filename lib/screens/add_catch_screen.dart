@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../models/catch.dart';
 import '../models/fish_species.dart' show fishingRegions, northAmericaSubRegions, speciesForRegion;
 import '../services/database_service.dart';
+import '../services/firebase_sync.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_config.dart';
 import '../main.dart';
@@ -33,6 +34,7 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
   final _lureCtrl = TextEditingController();
   final _tripCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
+  final _shareCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   final _lengthCtrl = TextEditingController();
   String _selectedRegion = '🌍 All Regions';
@@ -112,6 +114,7 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
     _lureCtrl.dispose();
     _tripCtrl.dispose();
     _notesCtrl.dispose();
+    _shareCtrl.dispose();
     _weightCtrl.dispose();
     _lengthCtrl.dispose();
     _speciesFocusNode.dispose();
@@ -241,6 +244,12 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
         weatherIcon: wi ?? existing?.weatherIcon,
         caughtAt: _caughtAt,
       );
+
+      // Upload to cloud sync
+      try {
+        final shareEmail = _shareCtrl.text.trim();
+        await FirebaseSyncService.instance.uploadCatch(catchItem, shareWithEmail: shareEmail.isNotEmpty ? shareEmail : null);
+      } catch (_) {}
 
       _saveAnglerToPrefs(_anglerCtrl.text.trim());
 
@@ -630,6 +639,20 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 14),
+
+            // ── Share with friend ──────────────────────────────────────────────
+            if (FirebaseSyncService.instance.isLoggedIn)
+              TextFormField(
+                controller: _shareCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Share with friend',
+                  hintText: 'Enter their email',
+                  prefixIcon: Icon(Icons.person_add),
+                  helperText: 'They\'ll see this catch in their app',
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            if (FirebaseSyncService.instance.isLoggedIn) const SizedBox(height: 14),
 
             // ── Weight ────────────────────────────────────────────────────────
             Row(

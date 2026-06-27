@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/counter.dart';
@@ -11,7 +12,7 @@ import '../main.dart';
 class _StaggeredFadeSlide extends StatelessWidget {
   final int index;
   final Widget child;
-  const _StaggeredFadeSlide({required this.index, required this.child});
+  const _StaggeredFadeSlide({super.key, required this.index, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -372,11 +373,13 @@ class _CounterScreenState extends State<CounterScreen> {
   }
 
   Future<void> _logAndIncrement(FishCounter angler, String? species) async {
-    // Increment the counter
+    // Vibrate + sound on fish detection
+    HapticFeedback.heavyImpact();
+    SystemSound.play(SystemSoundType.click);
+
     await DatabaseService.instance.incrementCounter(angler.id!);
 
     if (species != null) {
-      // Track species count separately (not added to Catches)
       await DatabaseService.instance.incrementVoiceSpecies(angler.angler, species);
       _showVoiceFeedback('${angler.angler} +1 $species! 🎣');
     } else {
@@ -401,6 +404,11 @@ class _CounterScreenState extends State<CounterScreen> {
         title: SizedBox.shrink(),
         actions: [
           IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _loadCounters,
+            tooltip: 'Refresh',
+          ),
+          IconButton(
             icon: Icon(Icons.delete_sweep),
             onPressed: _newTrip,
             tooltip: 'New Trip',
@@ -424,7 +432,7 @@ class _CounterScreenState extends State<CounterScreen> {
                     color: _isListening
                         ? AppColors.primary.withValues(alpha: 0.5)
                         : AppColors.primary.withValues(alpha: 0.2),
-                    width: 1.5,
+                    width: 1.0,
                   ),
                 ),
                 child: Row(
@@ -458,19 +466,31 @@ class _CounterScreenState extends State<CounterScreen> {
             )
           : _counters.isEmpty
               ? _emptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadCounters,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(top: 8, bottom: 88),
-                    itemCount: _counters.length + 1, // +1 for total
-                    itemBuilder: (ctx, i) {
-                      if (i == _counters.length) return _totalRow();
-                      return _StaggeredFadeSlide(
-                        index: i,
-                        child: _counterCard(_counters[i]),
+              : ReorderableListView.builder(
+                  padding: const EdgeInsets.only(top: 8, bottom: 88),
+                  itemCount: _counters.length + 1,
+                  onReorder: (oldI, newI) {
+                    if (oldI < _counters.length && newI <= _counters.length) {
+                      setState(() {
+                        final item = _counters.removeAt(oldI);
+                        _counters.insert(newI > oldI ? newI - 1 : newI, item);
+                      });
+                    }
+                  },
+                  itemBuilder: (ctx, i) {
+                    if (i == _counters.length) {
+                      return Padding(
+                        padding: EdgeInsets.zero,
+                        key: const ValueKey('total'),
+                        child: _totalRow(),
                       );
-                    },
-                  ),
+                    }
+                    return _StaggeredFadeSlide(
+                      key: ValueKey(_counters[i].id),
+                      index: i,
+                      child: _counterCard(_counters[i]),
+                    );
+                  },
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addAngler,
@@ -538,7 +558,7 @@ class _CounterScreenState extends State<CounterScreen> {
           ),
           border: Border.all(
             color: AppColors.tertiary.withValues(alpha: 0.25),
-            width: 1.5,
+            width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
@@ -631,7 +651,7 @@ class _CounterScreenState extends State<CounterScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: avatarColor.withValues(alpha: 0.25),
-                  width: 1.5,
+                  width: 1.0,
                 ),
               ),
               child: Center(
@@ -699,7 +719,7 @@ class _CounterScreenState extends State<CounterScreen> {
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
                   color: avatarColor.withValues(alpha: 0.25),
-                  width: 1.5,
+                  width: 1.0,
                 ),
               ),
               child: Text(

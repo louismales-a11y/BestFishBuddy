@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/catch.dart';
 import '../services/database_service.dart';
 import '../services/api_config.dart';
+import '../main.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -20,10 +21,26 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   List<Catch> _catches = [];
   List<Catch> _pinned = [];
+  Set<String> _filterSpecies = {};
+  Set<String> _filterAnglers = {};
+  String? _selectedFilter; // 'species' or 'angler'
+
+  List<Catch> get _filteredPinned {
+    if (_selectedFilter == null) return _pinned;
+    return _pinned.where((c) {
+      if (_selectedFilter == 'species') return _filterSpecies.contains(c.species);
+      if (_selectedFilter == 'angler') return _filterAnglers.contains(c.angler);
+      return true;
+    }).toList();
+  }
+
+  Set<String> get _allSpecies => _pinned.map((c) => c.species).toSet();
+  Set<String> get _allAnglers => _pinned.map((c) => c.angler).toSet();
   bool _loading = true;
   bool _showBait = false;
   bool _showGas = false;
   bool _showBoatLaunch = false;
+  bool _showHeatmap = false;
   List<_Poi> _pois = [];
   bool _searching = false;
   LatLng _mapCenter = const LatLng(44.5, -78.0);
@@ -226,7 +243,19 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       // Catch pins
                       MarkerLayer(
-                        markers: _pinned.map((c) => Marker(
+                        markers: _filteredPinned.map((c) {
+                          // Heatmap density: count nearby catches within ~0.5°
+                          int nearby = 0;
+                          if (_showHeatmap) {
+                            for (final other in _filteredPinned) {
+                              if (other.id != c.id && other.latitude != null && other.longitude != null) {
+                                final d = (other.latitude! - c.latitude!).abs() + (other.longitude! - c.longitude!).abs();
+                                if (d < 0.5) nearby++;
+                              }
+                            }
+                          }
+                          final heatColor = nearby > 5 ? Colors.red : nearby > 3 ? Colors.orange : nearby > 1 ? Colors.amber : const Color(0xFF00E5FF);
+                          return Marker(
                           point: LatLng(c.latitude!, c.longitude!),
                           width: 36, height: 36,
                           child: GestureDetector(
@@ -237,10 +266,10 @@ class _MapScreenState extends State<MapScreen> {
                                 shape: BoxShape.circle,
                                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 6, offset: const Offset(0, 2))],
                               ),
-                              child: const Icon(Icons.set_meal, color: Color(0xFF00E5FF), size: 18),
+                              child: Icon(Icons.set_meal, color: heatColor, size: 18),
                             ),
                           ),
-                        )).toList(),
+                        );}).toList(),
                       ),
                       // Current location
                       if (_currentLocation != null)
@@ -320,7 +349,15 @@ class _MapScreenState extends State<MapScreen> {
                       const SizedBox(height: 6),
                       _toggleButton('🌤️ Weather', false, () => _showForecast()),
                       const SizedBox(height: 6),
+                      _toggleButton('🌡️ Heatmap', _showHeatmap, () { setState(() => _showHeatmap = !_showHeatmap); }),
+                      const SizedBox(height: 6),
                       _toggleButton('🌙 Solunar', false, () => _showSolunar()),
+                      if (_allSpecies.length > 1) ...[const SizedBox(height: 8),
+                        _filterMapChips('species', _allSpecies, _filterSpecies, Icons.set_meal),
+                      ],
+                      if (_allAnglers.length > 1) ...[const SizedBox(height: 4),
+                        _filterMapChips('angler', _allAnglers, _filterAnglers, Icons.person),
+                      ],
                     ],
                   ),
                 ),
@@ -402,6 +439,59 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
     );
+  }
+
+  Widget _filterMapChips(String type, Set<String> options, Set<String> selected, IconData icon) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(type == 'species' ? 'Species' : 'Angler', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white54, letterSpacing: 1)),
+      const SizedBox(height: 4),
+      SizedBox(
+        height: 28,
+        child: ListView(scrollDirection: Axis.horizontal,
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedFilter = _selectedFilter == type ? null : type;
+                  if (_selectedFilter != type) selected.clear();
+                });
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: _selectedFilter == type ? Colors.white.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_selectedFilter == type ? Icons.filter_list_off : Icons.filter_list, size: 12, color: Colors.white),
+                  const SizedBox(width: 3),
+                  Text(_selectedFilter == type ? 'Clear' : 'Filter', style: const TextStyle(fontSize: 10, color: Colors.white)),
+                ]),
+              ),
+            ),
+            if (_selectedFilter == type)
+              ...options.map((o) => GestureDetector(
+                onTap: () { setState(() { if (selected.contains(o)) selected.remove(o); else selected.add(o); }); },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: selected.contains(o) ? AppColors.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: selected.contains(o) ? AppColors.primary.withValues(alpha: 0.5) : Colors.transparent),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(icon, size: 10, color: Colors.white70),
+                    const SizedBox(width: 3),
+                    Text(o, style: const TextStyle(fontSize: 10, color: Colors.white)),
+                  ]),
+                ),
+              )),
+          ],
+        ),
+      ),
+    ]);
   }
 
   void _showPoiInfo(_Poi p) {
@@ -527,11 +617,17 @@ class _MapScreenState extends State<MapScreen> {
               const SizedBox(height: 4),
               Text('Now: $temp°C • $cond — $desc', style: TextStyle(color: Colors.grey.shade600)),
               const SizedBox(height: 12),
+              // Fishing Forecast Score
+              _fishingScore(temp, feels, '$wind'.replaceAll('°C',''), '$humid'.replaceAll('%',''), cond),
+              const SizedBox(height: 12),
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
                 _weatherStat('Feels', '$feels°C'),
                 _weatherStat('Wind', '$wind m/s'),
                 _weatherStat('Humidity', '$humid%'),
               ]),
+              const SizedBox(height: 8),
+              // Water conditions
+              _waterConditions(temp, cond),
               const Divider(height: 24),
               Text('5-Day Forecast', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
@@ -540,6 +636,77 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _fishingScore(dynamic temp, dynamic feels, String windStr, String humidStr, String cond) {
+    // Calculate score 0-100
+    int score = 50;
+    // Weather (0-40)
+    final goodWeather = ['Clear', 'Clouds', 'Partly Cloudy'];
+    final badWeather = ['Rain', 'Drizzle', 'Thunderstorm', 'Snow', 'Squall', 'Tornado'];
+    if (goodWeather.contains(cond)) score += 20;
+    else if (cond == 'Clouds') score += 10;
+    else if (badWeather.contains(cond)) score -= 20;
+    // Wind (0-30)
+    final windVal = double.tryParse(windStr) ?? 5;
+    if (windVal < 3) score += 15;
+    else if (windVal < 8) score += 10;
+    else if (windVal > 15) score -= 10;
+    // Temperature (0-30)
+    final tempVal = (temp is num) ? temp.toDouble() : 20.0;
+    if (tempVal > 15 && tempVal < 28) score += 15;
+    else if (tempVal > 5 && tempVal < 35) score += 5;
+    else score -= 10;
+
+    score = score.clamp(0, 100);
+    final emoji = score >= 80 ? '🏆' : score >= 60 ? '🎣' : score >= 40 ? '👍' : score >= 20 ? '🤔' : '👎';
+    final label = score >= 80 ? 'Excellent!' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : score >= 20 ? 'Poor' : 'Bad';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: score >= 60 ? Colors.green.withValues(alpha: 0.1) : score >= 40 ? Colors.orange.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+        border: Border.all(color: score >= 60 ? Colors.green.withValues(alpha: 0.3) : score >= 40 ? Colors.orange.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: Row(children: [
+        Text('$emoji ', style: const TextStyle(fontSize: 24)),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Fishing Forecast: $score/100', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+            Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        _weatherStat('Score', '$score'),
+      ]),
+    );
+  }
+
+  Widget _waterConditions(dynamic airTemp, String condition) {
+    final tempVal = (airTemp is num) ? airTemp.toDouble() : 20.0;
+    final waterTemp = (tempVal * 0.8 + 5).round(); // rough estimate
+    final clarity = condition.contains('Rain') ? 'Murky' : (condition.contains('Clear') ? 'Clear' : 'Stained');
+    final rating = waterTemp > 20 ? 'Warm' : waterTemp > 12 ? 'Moderate' : waterTemp > 5 ? 'Cool' : 'Cold';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: Colors.blue.withValues(alpha: 0.06),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.15)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.water, size: 18, color: Colors.blue),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Water: ~$waterTemp°C ($rating)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+            Text('Clarity: $clarity', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -608,7 +775,7 @@ class _MapScreenState extends State<MapScreen> {
             const SizedBox(height: 16),
             Row(children: [
               Text('$phaseIcon ', style: const TextStyle(fontSize: 28)),
-              Text(phaseName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Flexible(child: Text(phaseName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
             ]),
             const SizedBox(height: 4),
             Text('Fishing Rating: $rating', style: const TextStyle(fontSize: 16)),
@@ -635,16 +802,19 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _solunarTime(String label, String morning, String evening) {
-    return Row(children: [
-      SizedBox(width: 60, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-      const Icon(Icons.wb_sunny, size: 14, color: Colors.orange),
-      const SizedBox(width: 4),
-      Text('AM: $morning', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-      const SizedBox(width: 16),
-      const Icon(Icons.nightlight_round, size: 14, color: Colors.indigo),
-      const SizedBox(width: 4),
-      Text('PM: $evening', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-    ]);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        SizedBox(width: 60, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+        const Icon(Icons.wb_sunny, size: 14, color: Colors.orange),
+        const SizedBox(width: 4),
+        Text('AM: $morning', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+        const SizedBox(width: 16),
+        const Icon(Icons.nightlight_round, size: 14, color: Colors.indigo),
+        const SizedBox(width: 4),
+        Text('PM: $evening', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+      ]),
+    );
   }
 
   Future<void> _openDirections(double lat, double lng) async {
