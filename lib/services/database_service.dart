@@ -1,8 +1,11 @@
+import 'dart:ui' show Color;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 import '../models/catch.dart';
 import '../models/counter.dart';
 import '../models/favorite_spot.dart';
+import '../models/fish_status.dart';
+import '../models/fish_data.dart';
 
 class DatabaseService {
   static Database? _db;
@@ -22,7 +25,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE catches (
@@ -81,6 +84,33 @@ class DatabaseService {
               best_species TEXT,
               photo_path TEXT,
               created_at TEXT NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            CREATE TABLE custom_fish (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              scientific_name TEXT DEFAULT '',
+              region TEXT DEFAULT 'All',
+              size_range TEXT DEFAULT '',
+              habitat TEXT DEFAULT '',
+              water_type TEXT DEFAULT '',
+              diet TEXT DEFAULT '',
+              common_tackle TEXT DEFAULT '',
+              description TEXT DEFAULT '',
+              tips TEXT DEFAULT '',
+              color_hex INTEGER DEFAULT 4280391411,
+              created_at TEXT NOT NULL
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE fish_status (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              species_name TEXT NOT NULL UNIQUE,
+              caught_count INTEGER DEFAULT 0,
+              is_master INTEGER DEFAULT 0
             )
           ''');
         }
@@ -229,6 +259,144 @@ class DatabaseService {
   Future<int> deleteCounter(int id) async {
     final db = await database;
     return await db.delete('counters', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---- Custom Fish ----
+
+  Future<List<FishSpecies>> getCustomFish() async {
+    final db = await database;
+    final maps = await db.query('custom_fish', orderBy: 'name ASC');
+    return maps.map((m) => _customFishToSpecies(m)).toList();
+  }
+
+  FishSpecies _customFishToSpecies(Map<String, dynamic> m) {
+    final tipsStr = m['tips'] as String? ?? '';
+    final tips = tipsStr.isEmpty ? <String>[] : tipsStr.split('\n');
+    return FishSpecies(
+      name: m['name'] as String,
+      scientificName: m['scientific_name'] as String? ?? '',
+      regions: [m['region'] as String? ?? 'All'],
+      sizeRange: m['size_range'] as String? ?? '',
+      habitat: m['habitat'] as String? ?? '',
+      waterType: m['water_type'] as String? ?? '',
+      diet: m['diet'] as String? ?? '',
+      commonTackle: m['common_tackle'] as String? ?? '',
+      description: m['description'] as String? ?? '',
+      tips: tips,
+      color: Color(m['color_hex'] as int? ?? 0xFF2196F3),
+    );
+  }
+
+  Map<String, dynamic> _customSpeciesToMap(FishSpecies fish) {
+    return {
+      'name': fish.name,
+      'scientific_name': fish.scientificName,
+      'region': fish.regions.isNotEmpty ? fish.regions.first : 'All',
+      'size_range': fish.sizeRange,
+      'habitat': fish.habitat,
+      'water_type': fish.waterType,
+      'diet': fish.diet,
+      'common_tackle': fish.commonTackle,
+      'description': fish.description,
+      'tips': fish.tips.join('\n'),
+      'color_hex': fish.color.toARGB32(),
+      'created_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  Future<int> addCustomFish(FishSpecies fish) async {
+    final db = await database;
+    final map = _customSpeciesToMap(fish);
+    return await db.insert('custom_fish', map);
+  }
+
+  Future<int> updateCustomFish(FishSpecies fish, int id) async {
+    final db = await database;
+    final map = _customSpeciesToMap(fish);
+    return await db.update('custom_fish', map,
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteCustomFish(int id) async {
+    final db = await database;
+    return await db.delete('custom_fish', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Check if a fish name already exists in built-in or custom database.
+  Future<bool> isDuplicateFish(String name) async {
+    final query = name.trim().toLowerCase();
+    // Check built-in
+    for (final f in fishDatabase) {
+      if (f.name.trim().toLowerCase() == query) return true;
+    }
+    // Check custom
+    final db = await database;
+    final result = await db.query('custom_fish',
+        where: 'LOWER(name) = ?', whereArgs: [query]);
+    return result.isNotEmpty;
+  }
+
+  // ---- Fish Status (Caught / Master) ----
+
+  Future<Map<String, FishStatus>> getAllFishStatus() async {
+    final db = await database;
+    final maps = await db.query('fish_status');
+    return {
+      for (var m in maps)
+        m['species_name'] as String: FishStatus.fromMap(m),
+    };
+  }
+
+  Future<FishStatus?> getFishStatus(String speciesName) async {
+    final db = await database;
+    final maps = await db.query('fish_status',
+        where: 'species_name = ?', whereArgs: [speciesName]);
+    if (maps.isEmpty) return null;
+    return FishStatus.fromMap(maps.first);
+  }
+
+  Future<void> upsertFishStatus(FishStatus status) async {
+    final db = await database;
+    await db.insert(
+      'fish_status',
+      status.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> toggleCaught(String speciesName) async {
+    final d = await database;
+    final existing = await getFishStatus(speciesName);
+    if (existing != null) {
+      final newCount = existing.caughtCount > 0 ? 0 : 1;
+      await d.update(
+        'fish_status',
+        {'caught_count': newCount},
+        where: 'species_name = ?', whereArgs: [speciesName],
+      );
+    } else {
+      await upsertFishStatus(FishStatus(
+        speciesName: speciesName,
+        caughtCount: 1,
+      ));
+    }
+  }
+
+  Future<void> toggleMaster(String speciesName) async {
+    final d = await database;
+    final existing = await getFishStatus(speciesName);
+    if (existing != null) {
+      await d.update(
+        'fish_status',
+        {'is_master': existing.isMaster ? 0 : 1},
+        where: 'species_name = ?', whereArgs: [speciesName],
+      );
+    } else {
+      await upsertFishStatus(FishStatus(
+        speciesName: speciesName,
+        isMaster: true,
+      ));
+    }
   }
 
   // ---- Statistics ----
