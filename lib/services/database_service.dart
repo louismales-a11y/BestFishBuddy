@@ -7,6 +7,7 @@ import '../models/favorite_spot.dart';
 import '../models/fish_status.dart';
 import '../models/fish_data.dart';
 import '../data/fish_database.dart';
+import '../models/tackle_item.dart';
 
 class DatabaseService {
   static Database? _db;
@@ -71,6 +72,19 @@ class DatabaseService {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS tackle_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              type TEXT NOT NULL,
+              photo_path TEXT,
+              target_species TEXT DEFAULT '',
+              tips TEXT DEFAULT '',
+              created_at TEXT NOT NULL
+            )
+          ''');
+        }
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE catches ADD COLUMN photo_paths TEXT');
         }
@@ -476,5 +490,30 @@ class DatabaseService {
         limit: 1);
     if (result.isEmpty) return null;
     return Catch.fromMap(result.first);
+  }
+
+  // ---- Tackle Box ----
+
+  Future<List<TackleItem>> getTackleItems() async {
+    final db = await database;
+    final maps = await db.query('tackle_items', orderBy: 'created_at DESC');
+    return maps.map((m) => TackleItem.fromMap(m)).toList();
+  }
+
+  Future<int> addTackleItem(TackleItem item) async {
+    final db = await database;
+    return await db.insert('tackle_items', item.toMap());
+  }
+
+  Future<int> updateTackleItem(TackleItem item) async {
+    final db = await database;
+    return await db.update('tackle_items', item.toMap(),
+        where: 'id = ?', whereArgs: [item.id]);
+  }
+
+  Future<int> deleteTackleItem(int id) async {
+    final db = await database;
+    return await db.delete('tackle_items',
+        where: 'id = ?', whereArgs: [id]);
   }
 }

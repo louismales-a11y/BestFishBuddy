@@ -12,6 +12,7 @@ import 'screens/gallery_screen.dart';
 import 'screens/solunar_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/fish_id_screen.dart';
+import 'screens/tackle_box_screen.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
 
@@ -483,6 +484,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                           builder: (_) => const GalleryScreen()));
                   break;
+                case 'tackle_box':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const TackleBoxScreen()));
+                  break;
                 case 'theme':
                   _showThemePicker(context, tp);
                   break;
@@ -530,6 +536,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListTile(
                   leading: Icon(Icons.photo_library),
                   title: Text('Photo Gallery'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'tackle_box',
+                child: ListTile(
+                  leading: Icon(Icons.set_meal),
+                  title: Text('Tackle Box'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
