@@ -10,6 +10,7 @@ import 'screens/stats_screen.dart';
 import 'screens/forecast_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/solunar_screen.dart';
+import 'screens/calendar_screen.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
 
@@ -466,6 +467,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                           builder: (_) => const SolunarScreen()));
                   break;
+                case 'calendar':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const CalendarScreen()));
+                  break;
                 case 'gallery':
                   Navigator.push(context,
                       MaterialPageRoute(
@@ -491,6 +497,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListTile(
                   leading: Icon(Icons.nights_stay),
                   title: Text('Best Fishing Times'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'calendar',
+                child: ListTile(
+                  leading: Icon(Icons.calendar_month),
+                  title: Text('Calendar'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),

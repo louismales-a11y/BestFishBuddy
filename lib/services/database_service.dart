@@ -102,6 +102,38 @@ class DatabaseService {
     return maps.map((m) => Catch.fromMap(m)).toList();
   }
 
+  /// Get catches for a specific calendar date using date( caught_at ).
+  Future<List<Catch>> getCatchesByDate(DateTime date) async {
+    final db = await database;
+    final y = date.year;
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    final maps = await db.query('catches',
+        where: "caught_at LIKE ?",
+        whereArgs: ['$y-$m-$d%'],
+        orderBy: 'caught_at DESC');
+    return maps.map((m) => Catch.fromMap(m)).toList();
+  }
+
+  /// Returns a map of 'YYYY-MM-DD' → catch count for the given month range.
+  Future<Map<String, int>> getCatchCountByDateRange(
+      DateTime start, DateTime end) async {
+    final db = await database;
+    final s = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final e = '${end.year}-${end.month.toString().padLeft(2, '0')}-${end.day.toString().padLeft(2, '0')}';
+    final result = await db.rawQuery('''
+      SELECT DATE(caught_at) as day, COUNT(*) as count
+      FROM catches
+      WHERE DATE(caught_at) BETWEEN ? AND ?
+      GROUP BY day
+      ORDER BY day ASC
+    ''', [s, e]);
+    return {
+      for (var r in result)
+        r['day'] as String: (r['count'] as int?) ?? 0
+    };
+  }
+
   Future<int> addCatch(Catch c) async {
     final db = await database;
     return await db.insert('catches', c.toMap());
