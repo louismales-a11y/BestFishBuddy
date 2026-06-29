@@ -438,16 +438,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             tooltip: 'Statistics',
           ),
-          // Weather (always visible)
-          IconButton(
-            icon: const Icon(Icons.wb_sunny, size: 20),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const ForecastScreen()),
-            ),
-            tooltip: 'Weather',
-          ),
           // Dark mode toggle
           IconButton(
             icon: AnimatedSwitcher(
@@ -466,6 +456,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.more_vert, color: accent),
             onSelected: (value) {
               switch (value) {
+                case 'weather':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const ForecastScreen()));
+                  break;
                 case 'solunar':
                   Navigator.push(context,
                       MaterialPageRoute(
@@ -482,6 +477,15 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'weather',
+                child: ListTile(
+                  leading: Icon(Icons.wb_sunny),
+                  title: Text('Weather'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               const PopupMenuItem(
                 value: 'solunar',
                 child: ListTile(
