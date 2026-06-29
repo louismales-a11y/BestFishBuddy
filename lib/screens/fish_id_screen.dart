@@ -739,68 +739,38 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
             ),
           ],
 
-          // ── Status buttons ──
+          // ── Status toggles ──
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _toggleCaught(),
-                  icon: Icon(
-                    widget.status?.caughtCount != null && widget.status!.caughtCount > 0
-                        ? Icons.check_circle
-                        : Icons.check_circle_outline,
-                    color: widget.status?.caughtCount != null && widget.status!.caughtCount > 0
-                        ? Colors.green
-                        : null,
-                  ),
-                  label: Text(
-                    widget.status?.caughtCount != null && widget.status!.caughtCount > 0
-                        ? 'Caught!'
-                        : 'Mark as Caught',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
+              _StatusChip(
+                label: 'Caught',
+                icon: widget.status?.caughtCount != null && widget.status!.caughtCount > 0
+                    ? Icons.check_circle
+                    : Icons.check_circle_outline,
+                active: widget.status?.caughtCount != null && widget.status!.caughtCount > 0,
+                activeColor: Colors.green,
+                onTap: _toggleCaught,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _toggleMaster(),
-                  icon: Icon(
-                    widget.status?.isMaster == true
-                        ? Icons.auto_awesome
-                        : Icons.auto_awesome_outlined,
-                    color: widget.status?.isMaster == true
-                        ? Colors.amber.shade700
-                        : null,
-                  ),
-                  label: Text(
-                    widget.status?.isMaster == true
-                        ? 'Mastered!'
-                        : 'Mark as Master',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
+              _StatusChip(
+                label: 'Master',
+                icon: widget.status?.isMaster == true
+                    ? Icons.auto_awesome
+                    : Icons.auto_awesome_outlined,
+                active: widget.status?.isMaster == true,
+                activeColor: Colors.amber.shade700,
+                onTap: _toggleMaster,
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _toggleFavorite(),
-                  icon: Icon(
-                    widget.status?.isFavorite == true
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: widget.status?.isFavorite == true
-                        ? Colors.red.shade400
-                        : null,
-                  ),
-                  label: Text(
-                    widget.status?.isFavorite == true
-                        ? 'Favorited'
-                        : 'Add to Wishlist',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
+              _StatusChip(
+                label: 'Wishlist',
+                icon: widget.status?.isFavorite == true
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                active: widget.status?.isFavorite == true,
+                activeColor: Colors.red.shade400,
+                onTap: _toggleFavorite,
               ),
             ],
           ),
@@ -855,6 +825,66 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
                     fontWeight: FontWeight.w500, fontSize: 14)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Compact status toggle chip for caught / master / wishlist.
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool active;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _StatusChip({
+    required this.label,
+    required this.icon,
+    required this.active,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Material(
+        color: active
+            ? activeColor.withValues(alpha: 0.12)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon,
+                    size: 22,
+                    color: active
+                        ? activeColor
+                        : theme.colorScheme.onSurface
+                            .withValues(alpha: 0.5)),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active
+                        ? activeColor
+                        : theme.colorScheme.onSurface
+                            .withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

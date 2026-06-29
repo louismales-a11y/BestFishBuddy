@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/fish_data.dart';
 import '../services/database_service.dart';
+import '../services/wikipedia_service.dart';
 
 class AddFishScreen extends StatefulWidget {
   const AddFishScreen({super.key});
@@ -23,7 +25,11 @@ class _AddFishScreenState extends State<AddFishScreen> {
   String _selectedRegion = 'All';
   String _selectedWater = 'Freshwater';
   bool _saving = false;
+  bool _lookingUp = false;
   String? _duplicateError;
+
+  /// Debounce timer for Wikipedia auto-fill.
+  Timer? _debounce;
 
   static const _regions = [
     'All', 'USA', 'Canada', 'Europe',
@@ -36,6 +42,7 @@ class _AddFishScreenState extends State<AddFishScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _nameCtrl.dispose();
     _sciNameCtrl.dispose();
     _sizeCtrl.dispose();
@@ -50,7 +57,54 @@ class _AddFishScreenState extends State<AddFishScreen> {
   Future<void> _checkDuplicate(String name) async {
     if (name.trim().isEmpty) return;
     final isDup = await DatabaseService.instance.isDuplicateFish(name);
-    setState(() => _duplicateError = isDup ? 'A fish named "$name" already exists!' : null);
+    setState(() => _duplicateError =
+        isDup ? 'A fish named "$name" already exists!' : null);
+  }
+
+  /// Debounced Wikipedia lookup triggered when the name field changes.
+  void _onNameChanged(String value) {
+    _checkDuplicate(value);
+
+    _debounce?.cancel();
+    if (value.trim().length < 3) return; // require at least 3 chars
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _lookupWikipedia(value.trim());
+    });
+  }
+
+  /// Fetch fish info from Wikipedia and fill in empty fields.
+  Future<void> _lookupWikipedia(String query) async {
+    if (query.isEmpty) return;
+    setState(() => _lookingUp = true);
+
+    try {
+      final info = await WikipediaService.fetchFishInfo(query);
+      if (info == null || !mounted) return;
+
+      setState(() {
+        // Scientific name — only overwrite if empty
+        if (_sciNameCtrl.text.isEmpty &&
+            info.scientificName != null &&
+            info.scientificName!.isNotEmpty) {
+          _sciNameCtrl.text = info.scientificName!;
+        }
+        // Description — only overwrite if empty
+        if (_descCtrl.text.isEmpty &&
+            info.description != null &&
+            info.description!.isNotEmpty) {
+          // Trim to a reasonable length
+          final extract = info.description!
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+          _descCtrl.text = extract.length > 500
+              ? '${extract.substring(0, 500)}…'
+              : extract;
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _lookingUp = false);
+    }
   }
 
   Future<void> _save() async {
@@ -99,6 +153,8 @@ class _AddFishScreenState extends State<AddFishScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add a Fish'),
@@ -106,22 +162,56 @@ class _AddFishScreenState extends State<AddFishScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // Fix #1: bottom padding so save button isn't hidden by nav bar
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad + 80),
           children: [
-            // ── Name ──
-            TextFormField(
-              controller: _nameCtrl,
-              onChanged: (v) => _checkDuplicate(v),
-              decoration: const InputDecoration(
-                labelText: 'Common Name *',
-                hintText: 'e.g. Blue Catfish',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Name is required';
-                if (_duplicateError != null) return _duplicateError;
-                return null;
-              },
+            // ── Name + Wikipedia lookup ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _nameCtrl,
+                    onChanged: _onNameChanged,
+                    decoration: const InputDecoration(
+                      labelText: 'Common Name *',
+                      hintText: 'e.g. Blue Catfish',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Name is required';
+                      if (_duplicateError != null) return _duplicateError;
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 56,
+                  child: Tooltip(
+                    message: 'Look up on Wikipedia',
+                    child: IconButton(
+                      icon: _lookingUp
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_fix_high),
+                      onPressed: _lookingUp
+                          ? null
+                          : () => _lookupWikipedia(_nameCtrl.text.trim()),
+                      style: IconButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainerHighest,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_duplicateError != null)
               Padding(
