@@ -14,6 +14,7 @@ class FishSpecies {
   final String description;
   final List<String> tips;
   final Color color;
+  final bool isProtected;
 
   const FishSpecies({
     required this.name,
@@ -27,6 +28,7 @@ class FishSpecies {
     this.description = '',
     this.tips = const [],
     this.color = Colors.blue,
+    this.isProtected = false,
   });
 }
 // ═══════════════════════════════════════════════════════════════════════════
@@ -389,6 +391,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Large lakes and rivers', waterType: 'Freshwater',
     diet: 'Bottom invertebrates, small fish', commonTackle: 'Heavy rod, large hooks, cut bait, worms',
     color: Color(0xFF5D4037),
+    isProtected: true,
     description: 'A living fossil — virtually unchanged for 200 million years. Canada\'s largest freshwater fish. Protected in many areas; catch and release only.',
     tips: ['Fish deep holes in large rivers like the Fraser', 'Use heavy tackle — sturgeon are incredibly strong', 'Check local regulations — many areas have strict rules'],
   ),
@@ -453,6 +456,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Atlantic Ocean, rivers', waterType: 'Saltwater / Freshwater',
     diet: 'Fish, crustaceans, squid', commonTackle: 'Flies, spoons, spinners',
     color: Color(0xFFE91E63),
+    isProtected: true,
     description: 'The king of game fish on Canada\'s east coast. Anadromous — born in freshwater, migrate to sea, return to spawn. Famous for leaping ability and fighting spirit.',
     tips: ['Fly fishing with speckled flies is traditional in Quebec and Maritimes', 'Fish in rivers during spawning runs (spring/fall)', 'Use sinking lines in deep pools and runs'],
   ),
@@ -462,6 +466,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Cold rivers, alpine lakes', waterType: 'Freshwater',
     diet: 'Fish, insects, crustaceans', commonTackle: 'Spoons, spinners, flies, streamers',
     color: Color(0xFF795548),
+    isProtected: true,
     description: 'A char species native to western Canada. Olive-green back with pale spots. Requires clean, cold water. Listed as threatened in some areas.',
     tips: ['Found in BC and Alberta mountain waters', 'Use large streamers or spoons', 'Practice catch and release — populations are vulnerable'],
   ),
@@ -660,6 +665,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Rivers, lakes, estuaries', waterType: 'Freshwater / Saltwater',
     diet: 'Fish, insects, crustaceans', commonTackle: 'Worms, live bait, set lines',
     color: Color(0xFF37474F),
+    isProtected: true,
     description: 'A catadromous fish born in the Sargasso Sea, migrating to freshwater to grow. Once abundant in the St. Lawrence and Great Lakes, now endangered due to dams.',
     tips: ['Found in St. Lawrence River and tributaries', 'Use nightcrawlers on bottom at night', 'American eels are now a species of concern — practice catch and release'],
   ),
@@ -921,6 +927,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Large lakes and rivers', waterType: 'Freshwater',
     diet: 'Bottom invertebrates, small fish', commonTackle: 'Heavy rod, large hooks, cut bait, worms',
     color: Color(0xFF5D4037),
+    isProtected: true,
     description: 'A living fossil — virtually unchanged for 200 million years. Canada\'s largest freshwater fish. Protected in many areas; catch and release only.',
     tips: ['Fish deep holes in large rivers like the Fraser and Winnipeg', 'Use heavy tackle — sturgeon are incredibly strong', 'Check local regulations — many areas have strict rules'],
   ),
@@ -1099,6 +1106,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Large rivers and lakes in Southeast Asia', waterType: 'Freshwater',
     diet: 'Algae, plankton, fruit', commonTackle: 'Specialized gear, fruit baits, dough balls',
     color: Color(0xFF8D6E63),
+    isProtected: true,
     description: 'The largest carp species in the world. Can grow over 2 meters and weigh 200 kg. Critically endangered due to habitat loss.',
     tips: ['Found in the Mekong River system', 'Use fruit-based baits', 'Strictly protected — catch and release only'],
   ),
@@ -1121,6 +1129,7 @@ const fishDatabase = <FishSpecies>[
     habitat: 'Amazon River basin', waterType: 'Freshwater',
     diet: 'Fish', commonTackle: 'Large lures, live bait, heavy tackle',
     color: Color(0xFF795548),
+    isProtected: true,
     description: 'One of the largest freshwater fish in the world. Can breathe air using its swim bladder. Ancient-looking with a massive, armored body.',
     tips: ['Watch for surface rolls — they breathe air every 5-15 minutes', 'Use extremely heavy tackle (100lb+ line)', 'Catch and release is critical — populations are threatened'],
   ),

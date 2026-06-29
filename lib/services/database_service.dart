@@ -25,7 +25,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE catches (
@@ -113,6 +113,15 @@ class DatabaseService {
               is_master INTEGER DEFAULT 0
             )
           ''');
+        }
+        if (oldVersion < 5 && oldVersion >= 4) {
+          try {
+            await db.execute(
+              'ALTER TABLE fish_status ADD COLUMN is_favorite INTEGER DEFAULT 0',
+            );
+          } catch (_) {
+            // Column may already exist
+          }
         }
       },
     );
@@ -395,6 +404,23 @@ class DatabaseService {
       await upsertFishStatus(FishStatus(
         speciesName: speciesName,
         isMaster: true,
+      ));
+    }
+  }
+
+  Future<void> toggleFavorite(String speciesName) async {
+    final d = await database;
+    final existing = await getFishStatus(speciesName);
+    if (existing != null) {
+      await d.update(
+        'fish_status',
+        {'is_favorite': existing.isFavorite ? 0 : 1},
+        where: 'species_name = ?', whereArgs: [speciesName],
+      );
+    } else {
+      await upsertFishStatus(FishStatus(
+        speciesName: speciesName,
+        isFavorite: true,
       ));
     }
   }

@@ -19,6 +19,7 @@ class _FishIdScreenState extends State<FishIdScreen>
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   String _selectedRegion = 'All';
+  String _selectedWater = 'All';
   List<FishSpecies> _customFish = [];
   Map<String, FishStatus> _statusMap = {};
 
@@ -32,6 +33,8 @@ class _FishIdScreenState extends State<FishIdScreen>
     'Africa',
     'Australia',
   ];
+
+  final _waterTypes = ['All', 'Freshwater', 'Saltwater', 'Saltwater / Freshwater'];
 
   @override
   void initState() {
@@ -69,9 +72,13 @@ class _FishIdScreenState extends State<FishIdScreen>
     final query = _searchQuery.toLowerCase().trim();
     final allFish = [...fishDatabase, ..._customFish];
     var results = allFish.where((f) {
+      // Region filter
       final regionMatch =
           _selectedRegion == 'All' || f.regions.contains(_selectedRegion);
       if (!regionMatch) return false;
+      // Water type filter
+      if (_selectedWater != 'All' && f.waterType != _selectedWater) return false;
+      // Search query
       if (query.isEmpty) return true;
       return f.name.toLowerCase().contains(query) ||
           f.scientificName.toLowerCase().contains(query) ||
@@ -99,6 +106,14 @@ class _FishIdScreenState extends State<FishIdScreen>
           return a.name.compareTo(b.name);
         });
         break;
+      case 'favorite':
+        results.sort((a, b) {
+          final aF = _statusMap[a.name]?.isFavorite ?? false;
+          final bF = _statusMap[b.name]?.isFavorite ?? false;
+          if (aF != bF) return aF ? -1 : 1;
+          return a.name.compareTo(b.name);
+        });
+        break;
       default: // 'name' ASC
         results.sort((a, b) => a.name.compareTo(b.name));
     }
@@ -112,6 +127,7 @@ class _FishIdScreenState extends State<FishIdScreen>
       'name_desc': 'Name (Z-A)',
       'caught': 'Caught first',
       'master': 'Master first',
+      'favorite': 'Favorites first',
     };
 
     showModalBottomSheet(
@@ -232,6 +248,28 @@ class _FishIdScreenState extends State<FishIdScreen>
             ),
           ),
           const Divider(height: 1),
+          // ── Water type chips ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _waterTypes.map((w) {
+                  final active = _selectedWater == w;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(w, style: const TextStyle(fontSize: 12)),
+                      selected: active,
+                      onSelected: (_) => setState(() => _selectedWater = w),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
           // ── Results count ──
           if (results.isNotEmpty)
             Padding(
@@ -423,6 +461,41 @@ class _FishCardState extends State<_FishCard> {
                             padding: const EdgeInsets.only(left: 2),
                             child: Icon(Icons.auto_awesome,
                                 size: 16, color: Colors.amber.shade700),
+                          ),
+                        // Favorite indicator
+                        if (widget.status != null && widget.status!.isFavorite)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Icon(Icons.favorite,
+                                size: 16, color: Colors.red.shade400),
+                          ),
+                        // Protected badge
+                        if (fish.isProtected)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: Colors.red.shade300, width: 0.5),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.shield,
+                                      size: 11, color: Colors.red.shade600),
+                                  const SizedBox(width: 2),
+                                  Text('Protected',
+                                      style: TextStyle(
+                                          fontSize: 9,
+                                          color: Colors.red.shade700,
+                                          fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -637,8 +710,37 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
                   ),
                 )),
           ],
-          // ── Caught / Master buttons ──
-          const SizedBox(height: 24),
+          // ── Protected banner ──
+          if (fish.isProtected) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.shield, size: 18, color: Colors.red.shade600),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Protected species — practice catch and release',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red.shade800,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // ── Status buttons ──
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -656,10 +758,11 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
                     widget.status?.caughtCount != null && widget.status!.caughtCount > 0
                         ? 'Caught!'
                         : 'Mark as Caught',
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _toggleMaster(),
@@ -675,6 +778,27 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
                     widget.status?.isMaster == true
                         ? 'Mastered!'
                         : 'Mark as Master',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _toggleFavorite(),
+                  icon: Icon(
+                    widget.status?.isFavorite == true
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: widget.status?.isFavorite == true
+                        ? Colors.red.shade400
+                        : null,
+                  ),
+                  label: Text(
+                    widget.status?.isFavorite == true
+                        ? 'Favorited'
+                        : 'Add to Wishlist',
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
               ),
@@ -695,6 +819,13 @@ class _FishDetailScreenState extends State<_FishDetailScreen> {
 
   Future<void> _toggleMaster() async {
     await DatabaseService.instance.toggleMaster(widget.fish.name);
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    await DatabaseService.instance.toggleFavorite(widget.fish.name);
     if (mounted) {
       Navigator.pop(context, true);
     }
