@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../data/tackle_database.dart';
 import '../models/tackle_item.dart';
 
 class TackleDetailScreen extends StatelessWidget {
@@ -7,30 +8,41 @@ class TackleDetailScreen extends StatelessWidget {
 
   const TackleDetailScreen({super.key, required this.item});
 
+  /// Look up the emoji icon from the tackle database.
+  String? get _icon {
+    for (final t in tackleTypeDatabase) {
+      if (t.name == item.name || t.category == item.type) {
+        return t.icon;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final hasPhoto =
+        item.photoPath != null && File(item.photoPath!).existsSync();
 
     return Scaffold(
       appBar: AppBar(title: Text(item.name)),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad + 40),
         children: [
-          // Photo
-          if (item.photoPath != null && File(item.photoPath!).existsSync())
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.file(
-                File(item.photoPath!),
-                height: 220,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (a, b, c) => _noPhoto(theme),
-              ),
-            )
-          else
-            _noPhoto(theme),
+          // Photo or emoji icon
+          hasPhoto
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.file(
+                    File(item.photoPath!),
+                    height: 220,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (a, b, c) => _iconPlaceholder(theme),
+                  ),
+                )
+              : _iconPlaceholder(theme),
           const SizedBox(height: 16),
 
           // Type badge
@@ -98,24 +110,20 @@ class TackleDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _noPhoto(ThemeData theme) {
+  Widget _iconPlaceholder(ThemeData theme) {
+    final icon = _icon;
     return Container(
       height: 160,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.set_meal,
-              size: 48,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
-          const SizedBox(height: 8),
-          Text('No photo',
-              style: TextStyle(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.4))),
-        ],
+      child: Center(
+        child: icon != null
+            ? Text(icon, style: const TextStyle(fontSize: 64))
+            : Icon(Icons.set_meal,
+                size: 48,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
       ),
     );
   }

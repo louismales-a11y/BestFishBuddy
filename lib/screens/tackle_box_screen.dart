@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/tackle_item.dart';
 import '../services/database_service.dart';
 import 'add_tackle_screen.dart';
+import 'tackle_catalog_screen.dart';
 import 'tackle_detail_screen.dart';
 
 class TackleBoxScreen extends StatefulWidget {
@@ -38,12 +39,85 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
     }
   }
 
-  Future<void> _add() async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const AddTackleScreen()),
+  void _showAddOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text('Add to Tackle Box',
+                  style:
+                      TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.menu_book),
+                ),
+                title: const Text('Browse Catalog'),
+                subtitle: const Text('Pick from common lures and tackle'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const TackleCatalogScreen()),
+                  ).then((_) => _load());
+                },
+              ),
+              const Divider(height: 4),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt),
+                ),
+                title: const Text('Take Photo'),
+                subtitle: const Text('Snap a picture of your own tackle'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AddTackleScreen()),
+                  ).then((_) => _load());
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-    if (result == true) _load();
   }
 
   Future<void> _delete(TackleItem item) async {
@@ -79,7 +153,7 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add tackle',
-            onPressed: _add,
+            onPressed: _showAddOptions,
           ),
         ],
       ),
@@ -90,7 +164,7 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.set_meal,
+                      Icon(Icons.inventory_2,
                           size: 64, color: Colors.grey.shade300),
                       const SizedBox(height: 16),
                       Text('Your tackle box is empty',
@@ -103,7 +177,7 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
                               color: Colors.grey.shade400)),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
-                        onPressed: _add,
+                        onPressed: _showAddOptions,
                         icon: const Icon(Icons.add),
                         label: const Text('Add Tackle'),
                       ),
