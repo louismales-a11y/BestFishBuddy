@@ -175,11 +175,10 @@ class _CounterScreenState extends State<CounterScreen> {
 
   /// Parse voice commands:
   ///   "fish buddy Louis caught a pike"
-  ///   "fish buddy angler name caught a perch"
-  ///   "fish buddy Louis caught 3 walleye"
-  ///   "fish buddy Mary caught a big bass"
+  ///   "fish buddy Louis caught a 9 inch perch"
+  ///   "fish buddy Mary caught 3 walleye"
+  ///   "fish buddy John caught a 36 inch pike"
   void _parseCommand(String text) {
-    // Remove "fish buddy" prefix
     String cmd = text;
     for (final prefix in ['fish buddy', 'fishbuddy', 'hey fish buddy', 'ok fish buddy']) {
       if (cmd.startsWith(prefix)) {
@@ -188,9 +187,9 @@ class _CounterScreenState extends State<CounterScreen> {
       }
     }
 
-    // Extract number if present (default 1)
+    // Extract number of fish (default 1)
     int count = 1;
-    final numberWords = {
+    final numberWords = <String, int>{
       'one': 1, '1': 1, 'a': 1, 'an': 1,
       'two': 2, '2': 2, 'three': 3, '3': 3,
       'four': 4, '4': 4, 'five': 5, '5': 5,
@@ -199,25 +198,37 @@ class _CounterScreenState extends State<CounterScreen> {
       'ten': 10, '10': 10,
     };
 
-    // Look for "caught X" pattern — extract number
+    // Extract size: "X inch" or "X in" or "X foot" or "X ft"
+    double? sizeInches;
+    final sizeMatch = RegExp(r'(\d+(\.\d+)?)\s*(inch|in|inches|"|foot|ft|feet)').firstMatch(cmd);
+    if (sizeMatch != null) {
+      final value = double.parse(sizeMatch.group(1)!);
+      final unit = sizeMatch.group(3)!.toLowerCase();
+      if (unit == 'foot' || unit == 'ft' || unit == 'feet') {
+        sizeInches = value * 12;
+      } else {
+        sizeInches = value;
+      }
+      // Remove the size text from the command for further parsing
+      cmd = cmd.replaceFirst(sizeMatch.group(0)!, '').trim();
+    }
+
+    // Look for "caught" to split angler name and species
     final caughtMatch = RegExp(r'caught\s+(\S+)').firstMatch(cmd);
     String? species;
     if (caughtMatch != null) {
       final numOrSpecies = caughtMatch.group(1)!.toLowerCase();
       if (numberWords.containsKey(numOrSpecies)) {
         count = numberWords[numOrSpecies]!;
-        // Next word after the number is the species
         final afterNum = cmd.substring(caughtMatch.end).trim();
         species = afterNum.split(RegExp(r'\s+(and|the|big|huge|nice|great)\s+'))[0]
             .split(' ')[0]
             .trim();
         if (species.isEmpty) species = 'fish';
       } else if (numOrSpecies == 'a' || numOrSpecies == 'an') {
-        // "caught a pike" → next word is species
         final after = cmd.substring(caughtMatch.end).trim();
         species = after.split(' ')[0].trim();
         if (species.isEmpty) species = 'fish';
-        // Clean up trailing words
         for (final w in ['big', 'huge', 'nice', 'great', 'and', 'the']) {
           if (species == w) {
             species = after.split(' ').length > 1
@@ -242,19 +253,17 @@ class _CounterScreenState extends State<CounterScreen> {
         : cmd.trim();
 
     if (anglerName.isEmpty) {
-      _showVoiceFeedback('Couldn\'t identify the angler. Try: "fish buddy Louis caught a pike"');
+      _showVoiceFeedback('Couldn\'t identify the angler. Try: "fish buddy Louis caught a 9 inch perch"');
       return;
     }
 
-    // Find closest matching angler
     final match = _findAngler(anglerName);
     if (match == null) {
       _showVoiceFeedback('No angler found matching "$anglerName"');
       return;
     }
 
-    // Record the catch
-    _recordCatch(match, species, count);
+    _recordCatch(match, species, count, sizeInches: sizeInches);
   }
 
   String? _findAngler(String spoken) {
@@ -376,13 +385,18 @@ class _CounterScreenState extends State<CounterScreen> {
     );
   }
 
-  Future<void> _recordCatch(String angler, String species, int count) async {
+  Future<void> _recordCatch(String angler, String species, int count,
+      {double? sizeInches}) async {
     for (int i = 0; i < count; i++) {
-      await DatabaseService.instance.incrementSpeciesTally(angler, species);
+      await DatabaseService.instance.incrementSpeciesTally(angler, species,
+          sizeInches: sizeInches);
     }
     if (!mounted) return;
     await _load();
-    _showVoiceFeedback('✅ $angler caught $count $species');
+    final sizeStr = sizeInches != null
+        ? ' ${sizeInches.toStringAsFixed(0)}"'
+        : '';
+    _showVoiceFeedback('✅ $angler caught $count $species$sizeStr');
   }
 
   /// Quick-add a species via UI (for when voice isn't convenient).
@@ -695,6 +709,12 @@ class _AnglerCard extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
                                   color: theme.colorScheme.primary)),
+                          if (s.sizeDisplay.isNotEmpty) ...[const SizedBox(width: 4),
+                            Text(s.sizeDisplay,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500)),
+                          ],
                           const SizedBox(width: 4),
                           InkWell(
                             onTap: () => onDecrement(s.species),

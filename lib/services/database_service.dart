@@ -28,7 +28,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 8,
+      version: 9,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE catches (
@@ -77,6 +77,7 @@ class DatabaseService {
             angler TEXT NOT NULL,
             species TEXT NOT NULL,
             count INTEGER DEFAULT 0,
+            sizes TEXT DEFAULT '',
             UNIQUE(angler, species)
           )
         ''');
@@ -126,9 +127,17 @@ class DatabaseService {
               angler TEXT NOT NULL,
               species TEXT NOT NULL,
               count INTEGER DEFAULT 0,
+              sizes TEXT DEFAULT '',
               UNIQUE(angler, species)
             )
           ''');
+        }
+        if (oldVersion < 9) {
+          try {
+            await db.execute(
+              'ALTER TABLE species_tallies ADD COLUMN sizes TEXT DEFAULT ''',
+            );
+          } catch (_) {}
         }
         if (oldVersion < 2) {
           await db.execute('ALTER TABLE catches ADD COLUMN photo_paths TEXT');
@@ -594,24 +603,38 @@ class DatabaseService {
   }
 
   /// Increment a species tally for an angler (creates if not exists).
-  Future<void> incrementSpeciesTally(String angler, String species) async {
+  /// [sizeInches] is optional — append a fish length.
+  Future<void> incrementSpeciesTally(String angler, String species,
+      {double? sizeInches}) async {
     final db = await database;
     final existing = await db.query('species_tallies',
         where: 'angler = ? AND species = ?',
         whereArgs: [angler, species]);
-    
+
     if (existing.isEmpty) {
       await db.insert('species_tallies', {
         'angler': angler,
         'species': species,
         'count': 1,
+        'sizes': sizeInches != null ? sizeInches.toStringAsFixed(1) : '',
       });
     } else {
       final id = existing.first['id'] as int;
-      await db.rawUpdate(
-        'UPDATE species_tallies SET count = count + 1 WHERE id = ?',
-        [id],
-      );
+      if (sizeInches != null) {
+        final currentSizes = existing.first['sizes'] as String? ?? '';
+        final newSizes = currentSizes.isEmpty
+            ? sizeInches.toStringAsFixed(1)
+            : '$currentSizes,${sizeInches.toStringAsFixed(1)}';
+        await db.rawUpdate(
+          'UPDATE species_tallies SET count = count + 1, sizes = ? WHERE id = ?',
+          [newSizes, id],
+        );
+      } else {
+        await db.rawUpdate(
+          'UPDATE species_tallies SET count = count + 1 WHERE id = ?',
+          [id],
+        );
+      }
     }
   }
 

@@ -4,19 +4,22 @@ class SpeciesTally {
   final String angler;
   final String species;
   int count;
+  final List<double> sizes; // inches
 
   SpeciesTally({
     this.id,
     required this.angler,
     required this.species,
     this.count = 1,
-  });
+    List<double>? sizes,
+  }) : sizes = sizes ?? [];
 
   Map<String, dynamic> toMap() => {
         if (id != null) 'id': id,
         'angler': angler,
         'species': species,
         'count': count,
+        'sizes': sizes.map((s) => s.toStringAsFixed(1)).join(','),
       };
 
   factory SpeciesTally.fromMap(Map<String, dynamic> map) => SpeciesTally(
@@ -24,7 +27,23 @@ class SpeciesTally {
         angler: map['angler'] as String,
         species: map['species'] as String,
         count: (map['count'] as num?)?.toInt() ?? 0,
+        sizes: (map['sizes'] as String? ?? '')
+            .split(',')
+            .where((s) => s.isNotEmpty)
+            .map((s) => double.tryParse(s.trim()) ?? 0)
+            .where((d) => d > 0)
+            .toList(),
       );
+
+  String get sizeDisplay {
+    if (sizes.isEmpty) return '';
+    if (sizes.length == 1) return '${sizes.first.toStringAsFixed(0)}"';
+    final avg = (sizes.reduce((a, b) => a + b) / sizes.length);
+    final min = sizes.reduce((a, b) => a < b ? a : b);
+    final max = sizes.reduce((a, b) => a > b ? a : b);
+    if (min == max) return '${min.toStringAsFixed(0)}"';
+    return '${min.toStringAsFixed(0)}"-${max.toStringAsFixed(0)}"';
+  }
 }
 
 /// Angler with their total catch count and species breakdown.
