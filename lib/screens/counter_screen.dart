@@ -25,7 +25,10 @@ class _CounterScreenState extends State<CounterScreen> {
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
-    Future.microtask(() => _load());
+    Future.microtask(() async {
+      await _load();
+      _tryAutoStart();
+    });
   }
 
   @override
@@ -33,6 +36,24 @@ class _CounterScreenState extends State<CounterScreen> {
     _nameCtrl.dispose();
     _speech.stop();
     super.dispose();
+  }
+
+  Future<void> _tryAutoStart() async {
+    if (_isListening) return;
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _isListening = false),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+          // Auto-restart
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) _tryAutoStart();
+          });
+        }
+      },
+    );
+    if (!available) return;
+    _startContinuousListening();
   }
 
   Future<void> _load() async {
@@ -113,34 +134,21 @@ class _CounterScreenState extends State<CounterScreen> {
 
   // ── Voice Command ──────────────────────────────────────────────────
 
-  Future<void> _startListening() async {
-    final available = await _speech.initialize(
-      onError: (_) => setState(() => _isListening = false),
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          setState(() => _isListening = false);
-        }
-      },
-    );
-
-    if (!available) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speech recognition not available')),
-        );
-      }
+  /// Toggle listening on/off manually (for the mic button).
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      _stopListening();
       return;
     }
+    await _tryAutoStart();
+  }
 
+  void _startContinuousListening() {
+    if (_isListening) return;
     setState(() {
       _isListening = true;
       _commandCooldown = false;
     });
-    _startContinuousListening();
-  }
-
-  void _startContinuousListening() {
-    if (!_isListening) return;
     _speech.listen(
       onResult: (result) {
         if (_commandCooldown) return;
@@ -523,10 +531,10 @@ class _CounterScreenState extends State<CounterScreen> {
                       Expanded(
                         child: Text(
                           _isListening
-                              ? '🎤 Always on — say "fish buddy [name] caught a [species]"'
+                              ? '🎤 Say "fish buddy [name] caught a [species]"'
                               : _lastCommand.isNotEmpty
                                   ? '🗣️ "$_lastCommand"'
-                                  : 'Tap 🎤 for hands-free',
+                                  : 'Auto-listening — say "fish buddy…"',
                           style: TextStyle(
                             fontSize: 12,
                             color: _isListening
@@ -546,10 +554,10 @@ class _CounterScreenState extends State<CounterScreen> {
                               : theme.colorScheme.primary,
                         ),
                         onPressed:
-                            _isListening ? _stopListening : _startListening,
+                            _toggleListening,
                         tooltip: _isListening
-                            ? 'Stop listening'
-                            : 'Voice command',
+                            ? 'Mute mic'
+                            : 'Unmute mic',
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
