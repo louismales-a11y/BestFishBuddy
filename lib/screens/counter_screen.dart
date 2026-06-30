@@ -65,6 +65,30 @@ class _CounterScreenState extends State<CounterScreen> {
     await _load();
   }
 
+  Future<void> _deleteAngler(String angler) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Angler'),
+        content: Text('Remove $angler and all their catches?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child:
+                  const Text('Remove', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await DatabaseService.instance.deleteAngler(angler);
+      if (!mounted) return;
+      await _load();
+    }
+  }
+
   // ── Voice Command ──────────────────────────────────────────────────
 
   Future<void> _startListening() async {
@@ -416,6 +440,7 @@ class _CounterScreenState extends State<CounterScreen> {
                           return _AnglerCard(
                             breakdown: b,
                             onAdd: () => _quickAdd(b.angler),
+                            onDelete: () => _deleteAngler(b.angler),
                           );
                         },
                       ),
@@ -428,10 +453,12 @@ class _CounterScreenState extends State<CounterScreen> {
 class _AnglerCard extends StatelessWidget {
   final AnglerBreakdown breakdown;
   final VoidCallback onAdd;
+  final VoidCallback onDelete;
 
   const _AnglerCard({
     required this.breakdown,
     required this.onAdd,
+    required this.onDelete,
   });
 
   @override
@@ -472,6 +499,13 @@ class _AnglerCard extends StatelessWidget {
               onPressed: onAdd,
               color: theme.colorScheme.primary,
               tooltip: 'Quick add catch',
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 18),
+              onPressed: onDelete,
+              color: theme.colorScheme.error.withValues(alpha: 0.7),
+              tooltip: 'Remove angler',
               visualDensity: VisualDensity.compact,
             ),
             const Icon(Icons.expand_more, size: 20),

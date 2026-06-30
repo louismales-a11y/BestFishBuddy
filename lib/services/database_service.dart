@@ -628,4 +628,13 @@ class DatabaseService {
         'SELECT DISTINCT species FROM species_tallies ORDER BY species ASC');
     return rows.map((r) => r['species'] as String).toList();
   }
+
+  /// Delete an angler and all their tallies.
+  Future<void> deleteAngler(String angler) async {
+    final db = await database;
+    await db.delete('species_tallies',
+        where: 'angler = ?', whereArgs: [angler]);
+    await db.delete('counters',
+        where: 'angler = ?', whereArgs: [angler]);
+  }
 }
