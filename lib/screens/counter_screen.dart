@@ -26,7 +26,39 @@ class _CounterScreenState extends State<CounterScreen> {
     _speech = stt.SpeechToText();
     Future.microtask(() async {
       await _load();
+      _autoStartOnce();
     });
+  }
+
+  /// Auto-start mic once on load. If it ends, it stays off — no restart loop.
+  Future<void> _autoStartOnce() async {
+    if (_isListening) return;
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _isListening = false),
+      onStatus: (status) {
+        // Session ended — just update state, no restart
+        if (status == 'done' || status == 'notListening') {
+          setState(() => _isListening = false);
+        }
+      },
+    );
+    if (!available) return;
+    setState(() => _isListening = true);
+    _speech.listen(
+      onResult: (result) {
+        if (!_isListening) return;
+        final text = result.recognizedWords.toLowerCase().trim();
+        if (text.contains('fish buddy')) {
+          _lastCommand = text;
+          _parseCommand(text);
+        }
+      },
+      listenFor: const Duration(minutes: 10),
+      listenOptions: stt.SpeechListenOptions(
+        partialResults: true,
+        cancelOnError: true,
+      ),
+    );
   }
 
   @override
@@ -114,39 +146,14 @@ class _CounterScreenState extends State<CounterScreen> {
 
   // ── Voice Command ──────────────────────────────────────────────────
 
-  /// Tap mic to toggle on/off. Starts a single session — no auto-restart.
+  /// Tap mic to toggle on/off.
   Future<void> _toggleListening() async {
     if (_isListening) {
       _speech.stop();
       setState(() => _isListening = false);
-      return;
+    } else {
+      await _autoStartOnce();
     }
-    final available = await _speech.initialize(
-      onError: (_) => setState(() => _isListening = false),
-      onStatus: (status) {
-        // When session ends naturally, just update state — don't restart
-        if (status == 'done' || status == 'notListening') {
-          setState(() => _isListening = false);
-        }
-      },
-    );
-    if (!available) return;
-    setState(() => _isListening = true);
-    _speech.listen(
-      onResult: (result) {
-        if (!_isListening) return;
-        final text = result.recognizedWords.toLowerCase().trim();
-        if (text.contains('fish buddy')) {
-          _lastCommand = text;
-          _parseCommand(text);
-        }
-      },
-      listenFor: const Duration(minutes: 10),
-      listenOptions: stt.SpeechListenOptions(
-        partialResults: true,
-        cancelOnError: true,
-      ),
-    );
   }
 
   /// Parse voice commands:
