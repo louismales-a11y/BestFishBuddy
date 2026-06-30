@@ -27,7 +27,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 7,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE catches (
@@ -84,6 +84,19 @@ class DatabaseService {
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS tackle_items (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              type TEXT NOT NULL,
+              photo_path TEXT,
+              target_species TEXT DEFAULT '',
+              tips TEXT DEFAULT '',
+              created_at TEXT NOT NULL
+            )
+          ''');
+        }
+        if (oldVersion < 7) {
           await db.execute('''
             CREATE TABLE IF NOT EXISTS tackle_items (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
