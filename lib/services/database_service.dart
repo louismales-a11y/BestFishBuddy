@@ -620,19 +620,31 @@ class DatabaseService {
       });
     } else {
       final id = existing.first['id'] as int;
+      // Always increment count
+      await db.rawUpdate(
+        'UPDATE species_tallies SET count = count + 1 WHERE id = ?',
+        [id],
+      );
+
+      // Keep only the 5 largest sizes
       if (sizeInches != null) {
         final currentSizes = existing.first['sizes'] as String? ?? '';
-        final newSizes = currentSizes.isEmpty
-            ? sizeInches.toStringAsFixed(1)
-            : '$currentSizes,${sizeInches.toStringAsFixed(1)}';
+        final sizes = currentSizes.isEmpty
+            ? <double>[]
+            : currentSizes
+                .split(',')
+                .map((s) => double.tryParse(s.trim()) ?? 0)
+                .where((d) => d > 0)
+                .toList();
+
+        sizes.add(sizeInches);
+        sizes.sort((a, b) => b.compareTo(a)); // descending
+        if (sizes.length > 5) {
+          sizes.removeRange(5, sizes.length); // keep top 5
+        }
         await db.rawUpdate(
-          'UPDATE species_tallies SET count = count + 1, sizes = ? WHERE id = ?',
-          [newSizes, id],
-        );
-      } else {
-        await db.rawUpdate(
-          'UPDATE species_tallies SET count = count + 1 WHERE id = ?',
-          [id],
+          'UPDATE species_tallies SET sizes = ? WHERE id = ?',
+          [sizes.map((s) => s.toStringAsFixed(1)).join(','), id],
         );
       }
     }
