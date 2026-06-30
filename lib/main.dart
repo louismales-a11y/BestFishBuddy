@@ -444,6 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.more_vert, color: accent),
             onSelected: (value) {
               switch (value) {
+                // ── Planning ──
                 case 'weather':
                   Navigator.push(context,
                       MaterialPageRoute(
@@ -459,28 +460,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                           builder: (_) => const FishIdScreen()));
                   break;
+                case 'tackle_box':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const TackleBoxScreen()));
+                  break;
+                // ── History ──
                 case 'calendar':
                   Navigator.push(context,
                       MaterialPageRoute(
                           builder: (_) => const CalendarScreen()));
-                  break;
-                case 'gallery':
-                  Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const GalleryScreen()));
                   break;
                 case 'stats':
                   Navigator.push(context,
                       MaterialPageRoute(
                           builder: (_) => const StatsScreen()));
                   break;
-                case 'dark_mode':
-                  tp.toggleDark();
-                  break;
-                case 'tackle_box':
+                case 'gallery':
                   Navigator.push(context,
                       MaterialPageRoute(
-                          builder: (_) => const TackleBoxScreen()));
+                          builder: (_) => const GalleryScreen()));
+                  break;
+                // ── Appearance ──
+                case 'dark_mode':
+                  tp.toggleDark();
                   break;
                 case 'theme':
                   _showThemePicker(context, tp);
@@ -488,6 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
               }
             },
             itemBuilder: (ctx) => [
+              // ── Planning ──
               const PopupMenuItem(
                 value: 'weather',
                 child: ListTile(
@@ -516,28 +520,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const PopupMenuItem(
-                value: 'calendar',
-                child: ListTile(
-                  leading: Icon(Icons.calendar_month),
-                  title: Text('Calendar'),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'gallery',
-                child: ListTile(
-                  leading: Icon(Icons.photo_library),
-                  title: Text('Photo Gallery'),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
                 value: 'tackle_box',
                 child: ListTile(
                   leading: Icon(Icons.set_meal),
                   title: Text('Tackle Box'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              // ── History ──
+              const PopupMenuItem(
+                value: 'calendar',
+                child: ListTile(
+                  leading: Icon(Icons.calendar_month),
+                  title: Text('Calendar'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -551,6 +547,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
+              const PopupMenuItem(
+                value: 'gallery',
+                child: ListTile(
+                  leading: Icon(Icons.photo_library),
+                  title: Text('Photo Gallery'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              // ── Appearance ──
               PopupMenuItem(
                 value: 'dark_mode',
                 child: ListTile(
