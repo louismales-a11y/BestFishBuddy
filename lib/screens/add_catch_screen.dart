@@ -38,6 +38,10 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
   double? _longitude;
   double? _weatherTemp;
   String? _weatherCondition;
+  bool _useMetric = true;
+
+  String get _weightUnit => _useMetric ? 'kg' : 'lb';
+  String get _lengthUnit => _useMetric ? 'cm' : 'in';
 
   bool get _isEditing => widget.existingCatch != null;
   bool get _hasLocation => _latitude != null && _longitude != null;
@@ -60,6 +64,7 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
       _longitude = c.longitude;
       _weatherTemp = c.weatherTemp;
       _weatherCondition = c.weatherCondition;
+      _useMetric = c.weightUnit == 'kg' || c.lengthUnit == 'cm';
       if (c.hasPhotos && c.primaryPhoto != null) {
         _photoFile = File(c.primaryPhoto!);
       }
@@ -256,9 +261,11 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
         weight: _weightCtrl.text.isNotEmpty
             ? double.tryParse(_weightCtrl.text)
             : null,
+        weightUnit: _weightUnit,
         length: _lengthCtrl.text.isNotEmpty
             ? double.tryParse(_lengthCtrl.text)
             : null,
+        lengthUnit: _lengthUnit,
         notes: _notesCtrl.text.isNotEmpty ? _notesCtrl.text.trim() : null,
         caughtAt: _caughtAt,
       );
@@ -347,7 +354,7 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(context).padding.bottom + 80),
           children: [
             // Photo picker
             GestureDetector(
@@ -535,15 +542,39 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
             ),
             const SizedBox(height: 14),
 
+            // Unit toggle
+            Row(
+              children: [
+                const Text('Units:',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Metric', style: TextStyle(fontSize: 12)),
+                  selected: _useMetric,
+                  onSelected: (_) => setState(() => _useMetric = true),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: const Text('Imperial', style: TextStyle(fontSize: 12)),
+                  selected: !_useMetric,
+                  onSelected: (_) => setState(() => _useMetric = false),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             // Weight & Length
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _weightCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Weight (kg)',
-                      prefixIcon: Icon(Icons.monitor_weight),
+                    decoration: InputDecoration(
+                      labelText: 'Weight ($_weightUnit)',
+                      prefixIcon: const Icon(Icons.monitor_weight),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -552,9 +583,9 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _lengthCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Length (cm)',
-                      prefixIcon: Icon(Icons.straighten),
+                    decoration: InputDecoration(
+                      labelText: 'Length ($_lengthUnit)',
+                      prefixIcon: const Icon(Icons.straighten),
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -604,7 +635,7 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
                 label: Text(_saving ? 'Saving...' : 'Save Catch'),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
           ],
         ),
       ),
