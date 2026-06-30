@@ -569,12 +569,20 @@ class DatabaseService {
     final db = await database;
     final rows = await db.query('species_tallies', orderBy: 'angler ASC, species ASC');
     
-    // Group by angler
+    // Group by angler, filtering out empty-species placeholders
     final Map<String, List<SpeciesTally>> grouped = {};
     for (final row in rows) {
       final tally = SpeciesTally.fromMap(row);
+      if (tally.species.isEmpty) continue; // skip placeholders
       grouped.putIfAbsent(tally.angler, () => []);
       grouped[tally.angler]!.add(tally);
+    }
+    
+    // Ensure all anglers who have ever been added appear (even with 0 catches)
+    final allAnglers = await db.query('counters');
+    for (final a in allAnglers) {
+      final name = a['angler'] as String;
+      grouped.putIfAbsent(name, () => []);
     }
     
     return grouped.entries.map((e) => AnglerBreakdown(
