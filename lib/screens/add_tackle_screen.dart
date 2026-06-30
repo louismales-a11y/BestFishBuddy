@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/tackle_item.dart';
 import '../data/tackle_database.dart';
@@ -190,7 +191,10 @@ class _AddTackleScreenState extends State<AddTackleScreen> {
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit Tackle' : 'Add Tackle')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit Tackle' : 'Add Tackle'),
+        actions: [
+          helpButton(context, 'add_tackle'),
+        ]),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPad + 80),
         children: [

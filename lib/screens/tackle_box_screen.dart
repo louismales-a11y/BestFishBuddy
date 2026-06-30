@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import '../models/tackle_item.dart';
 import '../services/database_service.dart';
 import 'add_tackle_screen.dart';
@@ -237,6 +238,7 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
         title: const Text('Delete Tackle'),
         content: Text('Remove ${item.name} from your tackle box?'),
         actions: [
+          helpButton(context, 'tackle_box'),
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
@@ -271,6 +273,7 @@ class _TackleBoxScreenState extends State<TackleBoxScreen> {
       appBar: AppBar(
         title: const Text('Tackle Box'),
         actions: [
+          helpButton(context, 'tackle_box'),
           IconButton(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort',

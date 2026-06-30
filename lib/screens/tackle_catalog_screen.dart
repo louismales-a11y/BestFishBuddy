@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import '../data/tackle_database.dart';
 import '../models/tackle_item.dart';
 import '../services/database_service.dart';
@@ -52,6 +53,7 @@ class _TackleCatalogScreenState extends State<TackleCatalogScreen> {
             ),
           ),
           actions: [
+          helpButton(context, 'catalog'),
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
                 child: const Text('Cancel')),

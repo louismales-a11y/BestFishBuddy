@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../models/catch.dart';
@@ -69,7 +70,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Fishing Log Calendar')),
+      appBar: AppBar(title: const Text('Fishing Log Calendar'),
+        actions: [
+          helpButton(context, 'calendar'),
+        ]),
       body: Column(
         children: [
           // Calendar

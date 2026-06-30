@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/solunar_service.dart';
 import '../services/weather_service.dart';
@@ -93,7 +94,10 @@ class _SolunarScreenState extends State<SolunarScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Best Fishing Times')),
+      appBar: AppBar(title: const Text('Best Fishing Times'),
+        actions: [
+          helpButton(context, 'solunar'),
+        ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

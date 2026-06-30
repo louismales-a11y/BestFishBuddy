@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/catch.dart';
 import '../services/database_service.dart';
@@ -62,7 +63,10 @@ class _StatsScreenState extends State<StatsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Statistics')),
+      appBar: AppBar(title: const Text('Statistics'),
+        actions: [
+          helpButton(context, 'stats'),
+        ]),
       body: _totalCatches == 0
           ? Center(
               child: Column(

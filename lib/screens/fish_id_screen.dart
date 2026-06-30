@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import '../services/fish_image_service.dart';
 import '../services/database_service.dart';
 import '../models/fish_data.dart';
@@ -186,6 +187,7 @@ class _FishIdScreenState extends State<FishIdScreen>
       appBar: AppBar(
         title: const Text('Fish ID'),
         actions: [
+          helpButton(context, 'fish_id'),
           IconButton(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort',

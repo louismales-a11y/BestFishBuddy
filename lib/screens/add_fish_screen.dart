@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import '../models/fish_data.dart';
 import '../services/database_service.dart';
 import '../services/wikipedia_service.dart';
@@ -158,6 +159,9 @@ class _AddFishScreenState extends State<AddFishScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add a Fish'),
+        actions: [
+          helpButton(context, 'add_fish'),
+        ]
       ),
       body: Form(
         key: _formKey,

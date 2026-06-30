@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:intl/intl.dart';
 import '../models/catch.dart';
 import '../services/database_service.dart';
@@ -199,6 +200,7 @@ class _PhotoViewerState extends State<_PhotoViewer> {
           style: const TextStyle(fontSize: 16),
         ),
         actions: [
+          helpButton(context, 'gallery'),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Center(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:geolocator/geolocator.dart';
 import '../data/tackle_database.dart';
 import '../models/fish_data.dart';
@@ -190,7 +191,10 @@ class _TodaysPickScreenState extends State<TodaysPickScreen> {
     final _ = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Today's Pick")),
+      appBar: AppBar(title: const Text("Today's Pick"),
+        actions: [
+          helpButton(context, 'todays_pick'),
+        ]),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

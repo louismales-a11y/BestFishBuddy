@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/help_text.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/weather_service.dart';
 
@@ -86,7 +87,10 @@ class _ForecastScreenState extends State<ForecastScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Weather Forecast')),
+      appBar: AppBar(title: const Text('Weather Forecast'),
+        actions: [
+          helpButton(context, 'weather'),
+        ]),
       body: _buildBody(theme),
     );
   }

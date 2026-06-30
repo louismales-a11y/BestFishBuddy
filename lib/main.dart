@@ -13,6 +13,7 @@ import 'screens/solunar_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/fish_id_screen.dart';
 import 'screens/tackle_box_screen.dart';
+import 'services/help_text.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
 
@@ -432,6 +433,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          // Help
+          helpButton(context, _selectedIndex == 0
+              ? 'catches'
+              : _selectedIndex == 1
+                  ? 'counter'
+                  : 'map'),
           // Stats (always visible)
           IconButton(
             icon: const Icon(Icons.bar_chart, size: 20),
