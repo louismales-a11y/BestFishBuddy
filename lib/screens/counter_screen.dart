@@ -18,7 +18,6 @@ class _CounterScreenState extends State<CounterScreen> {
   // Voice
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  bool _commandCooldown = false;
   String _lastCommand = '';
 
   @override
@@ -27,7 +26,7 @@ class _CounterScreenState extends State<CounterScreen> {
     _speech = stt.SpeechToText();
     Future.microtask(() async {
       await _load();
-      _tryAutoStart();
+      _initPermanentSession();
     });
   }
 
@@ -38,22 +37,24 @@ class _CounterScreenState extends State<CounterScreen> {
     super.dispose();
   }
 
-  Future<void> _tryAutoStart() async {
+  Future<void> _initPermanentSession() async {
     if (_isListening) return;
     final available = await _speech.initialize(
       onError: (_) => setState(() => _isListening = false),
       onStatus: (status) {
+        // Only restart if the system forces the session to end
+        if (!mounted) return;
         if (status == 'done' || status == 'notListening') {
           setState(() => _isListening = false);
-          // Auto-restart
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) _tryAutoStart();
+          // Quietly restart — only happens if system kills the session
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) _initPermanentSession();
           });
         }
       },
     );
     if (!available) return;
-    _startListeningSession();
+    _startPermanentSession();
   }
 
   Future<void> _load() async {
@@ -134,58 +135,34 @@ class _CounterScreenState extends State<CounterScreen> {
 
   // ── Voice Command ──────────────────────────────────────────────────
 
-  /// Toggle listening on/off manually (for the mic button).
   Future<void> _toggleListening() async {
     if (_isListening) {
       _stopListening();
-      return;
+    } else {
+      await _initPermanentSession();
     }
-    await _tryAutoStart();
   }
 
-  void _startListeningSession() {
+  void _startPermanentSession() {
     if (_isListening) return;
-    setState(() {
-      _isListening = true;
-      _commandCooldown = false;
-    });
+    setState(() => _isListening = true);
     _speech.listen(
       onResult: (result) {
-        if (_commandCooldown) return;
+        if (!_isListening) return;
         final text = result.recognizedWords.toLowerCase().trim();
         if (text.contains('fish buddy')) {
-          _commandCooldown = true;
           _lastCommand = text;
           _parseCommand(text);
-          // Quick restart for next command
-          Future.delayed(const Duration(milliseconds: 600), () {
-            _commandCooldown = false;
-            if (_isListening && mounted) {
-              _restartSession();
-            }
-          });
+          // Don't stop or restart — the session continues live
         }
       },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
+      listenFor: const Duration(minutes: 10),
+      pauseFor: const Duration(seconds: 30),
       listenOptions: stt.SpeechListenOptions(
         partialResults: false,
         cancelOnError: true,
       ),
     );
-  }
-
-  void _restartSession() {
-    if (!mounted) return;
-    _speech.stop().then((_) {
-      if (mounted && _isListening) {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (mounted && _isListening) {
-            _startListeningSession();
-          }
-        });
-      }
-    });
   }
 
   void _stopListening() {
