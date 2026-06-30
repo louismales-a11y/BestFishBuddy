@@ -153,13 +153,12 @@ class _CounterScreenState extends State<CounterScreen> {
         if (text.contains('fish buddy')) {
           _lastCommand = text;
           _parseCommand(text);
-          // Don't stop or restart — the session continues live
         }
       },
       listenFor: const Duration(minutes: 10),
-      pauseFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 2),
       listenOptions: stt.SpeechListenOptions(
-        partialResults: false,
+        partialResults: true,
         cancelOnError: true,
       ),
     );
