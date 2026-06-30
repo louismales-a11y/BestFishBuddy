@@ -136,23 +136,34 @@ class _CounterScreenState extends State<CounterScreen> {
       _isListening = true;
       _commandCooldown = false;
     });
+    _startContinuousListening();
+  }
+
+  void _startContinuousListening() {
+    if (!_isListening) return;
     _speech.listen(
       onResult: (result) {
         if (_commandCooldown) return;
-        _commandCooldown = true;
         final text = result.recognizedWords.toLowerCase().trim();
-        if (text.isNotEmpty) {
+        if (text.isNotEmpty &&
+            text.contains('fish buddy')) {
+          _commandCooldown = true;
           _lastCommand = text;
           _parseCommand(text);
-          _stopListening();
-        } else {
-          _commandCooldown = false;
+          // Start listening again after a brief pause
+          Future.delayed(const Duration(milliseconds: 500), () {
+            _commandCooldown = false;
+            if (_isListening && mounted) {
+              _startContinuousListening();
+            }
+          });
         }
       },
-      listenFor: const Duration(seconds: 8),
-      pauseFor: const Duration(seconds: 3),
+      listenFor: const Duration(seconds: 60),
+      pauseFor: const Duration(seconds: 10),
       listenOptions: stt.SpeechListenOptions(
         partialResults: false,
+        cancelOnError: true,
       ),
     );
   }
@@ -498,10 +509,10 @@ class _CounterScreenState extends State<CounterScreen> {
                       Expanded(
                         child: Text(
                           _isListening
-                              ? '🎤 Listening... say "fish buddy [name] caught a [species]"'
+                              ? '🎤 Always on — say "fish buddy [name] caught a [species]"'
                               : _lastCommand.isNotEmpty
                                   ? '🗣️ "$_lastCommand"'
-                                  : 'Tap 🎤 for voice',
+                                  : 'Tap 🎤 for hands-free',
                           style: TextStyle(
                             fontSize: 12,
                             color: _isListening
