@@ -10,7 +10,6 @@ import '../models/catch.dart';
 import '../services/database_service.dart';
 import '../services/help_text.dart';
 import '../services/weather_service.dart';
-import '../services/widget_service.dart';
 import 'selfie_camera_screen.dart';
 
 class AddCatchScreen extends StatefulWidget {
@@ -308,7 +307,6 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
       } else {
         await DatabaseService.instance.addCatch(catchItem);
       }
-      WidgetService.updateWidget();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {

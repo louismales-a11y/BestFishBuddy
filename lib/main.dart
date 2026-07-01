@@ -16,7 +16,6 @@ import 'screens/fish_id_screen.dart';
 import 'screens/tackle_box_screen.dart';
 import 'services/help_text.dart';
 import 'services/theme_provider.dart';
-import 'services/widget_service.dart';
 import 'screens/onboarding_screen.dart';
 
 void main() {
@@ -194,8 +193,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (_) {
       if (mounted) setState(() => _version = '1.0.0');
     }
-    // Update home screen widget with latest data
-    WidgetService.updateWidget();
+
   }
 
   @override

@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../models/catch.dart';
 import '../services/database_service.dart';
+import 'add_catch_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -18,6 +19,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Map<String, int> _heatmap = {};
   List<Catch> _dayCatches = [];
   bool _loadingCatches = false;
+  // Stats for the month
+  int _monthTotal = 0;
+  int _monthSpecies = 0;
+  String _topAngler = '';
 
   @override
   void initState() {
@@ -25,6 +30,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _selectedDay = DateTime.now();
     _loadHeatmap(_focusedDay);
     _loadDayCatches(_selectedDay!);
+    _loadMonthStats(_focusedDay);
   }
 
   Future<void> _loadHeatmap(DateTime month) async {
@@ -37,6 +43,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _heatmap = data;
       });
     }
+  }
+
+  Future<void> _loadMonthStats(DateTime month) async {
+    final db = DatabaseService.instance;
+    final first = DateTime(month.year, month.month, 1);
+    final last = DateTime(month.year, month.month + 1, 0);
+    final catches = await db.getCatches();
+    final monthCatches = catches.where((c) =>
+        c.caughtAt.isAfter(first.subtract(const Duration(days: 1))) &&
+        c.caughtAt.isBefore(last.add(const Duration(days: 1)))).toList();
+    if (!mounted) return;
+    final species = monthCatches.map((c) => c.species.toLowerCase()).toSet().length;
+    final anglers = <String, int>{};
+    for (final c in monthCatches) {
+      anglers[c.angler] = (anglers[c.angler] ?? 0) + 1;
+    }
+    final top = anglers.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    setState(() {
+      _monthTotal = monthCatches.length;
+      _monthSpecies = species;
+      _topAngler = top.isNotEmpty ? '${top.first.key} (${top.first.value})' : '';
+    });
   }
 
   Future<void> _loadDayCatches(DateTime day) async {
@@ -97,6 +125,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onPageChanged: (focused) {
                 _focusedDay = focused;
                 _loadHeatmap(focused);
+                _loadMonthStats(focused);
               },
               headerStyle: HeaderStyle(
                 formatButtonVisible: false,
@@ -149,6 +178,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
 
+          // Month stats
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _statCol(Icons.set_meal, '$_monthTotal', 'Catches'),
+                _statCol(Icons.set_meal, '$_monthSpecies', 'Species'),
+                if (_topAngler.isNotEmpty)
+                  _statCol(Icons.emoji_events, _topAngler, 'Top Angler'),
+              ],
+            ),
+          ),
           // Legend
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -278,6 +320,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+  Widget _statCol(IconData icon, String value, String label) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.primary),
+        const SizedBox(height: 2),
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: theme.colorScheme.primary)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 11, color: Colors.grey.shade600)),
+      ],
+    );
+  }
+
   Widget _legendItem(Color color, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -315,6 +376,11 @@ class _CatchTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
+        onTap: () => Navigator.push(context,
+          MaterialPageRoute(
+            builder: (_) => AddCatchScreen(existingCatch: catch_),
+          ),
+        ),
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.primary
               .withValues(alpha: 0.12),
