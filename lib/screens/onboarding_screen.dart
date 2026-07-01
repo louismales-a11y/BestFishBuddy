@@ -39,6 +39,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '  • "save" — done!',
     ),
     _OnboardPage(
+      icon: Icons.more_vert,
+      title: 'More Features (⋮ menu)',
+      desc: 'Tap the ⋮ menu (top-right) for:\n'
+          '  🌤️ Weather & 5-day forecast\n'
+          '  🌙 Best Fishing Times (solunar)\n'
+          '  🐟 Fish ID Field Guide\n'
+          '  🎣 Tackle Box & Catalog\n'
+          '  📅 Calendar & Statistics\n'
+          '  🖼️ Photo Gallery\n'
+          '  🌓 Dark mode & Themes',
+    ),
+    _OnboardPage(
       icon: Icons.help_outline,
       title: 'Help is Everywhere',
       desc: 'Tap ❓ (top-right) on any screen\n'

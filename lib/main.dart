@@ -194,17 +194,6 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (_) {
       if (mounted) setState(() => _version = '1.0.0');
     }
-    // Check if user has seen onboarding
-    final prefs = await SharedPreferences.getInstance();
-    final onboarded = prefs.getBool('onboarding_done') ?? false;
-    if (!onboarded && mounted) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        useSafeArea: false,
-        builder: (_) => const OnboardingScreen(),
-      );
-    }
     // Update home screen widget with latest data
     WidgetService.updateWidget();
   }
@@ -278,7 +267,17 @@ class _SplashScreenState extends State<SplashScreen> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      // Show onboarding first (if first launch)
+                      final prefs = await SharedPreferences.getInstance();
+                      if (!(prefs.getBool('onboarding_done') ?? false)) {
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          useSafeArea: false,
+                          builder: (_) => const OnboardingScreen(),
+                        );
+                      }
                       Navigator.of(context).pushReplacement(
                         PageRouteBuilder(
                           pageBuilder: (_, _, _) => const HomeScreen(),
