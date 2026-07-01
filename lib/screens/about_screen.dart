@@ -23,6 +23,19 @@ class _AboutScreenState extends State<AboutScreen> {
     _loadVersion();
   }
 
+  /// Compare two version strings like "v1.8.12" and "v1.8.6".
+  bool _isNewerVersion(String tag, String current) {
+    final tagParts = tag.replaceAll('v', '').split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final curParts = current.replaceAll('v', '').split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (int i = 0; i < 3; i++) {
+      final t = i < tagParts.length ? tagParts[i] : 0;
+      final c = i < curParts.length ? curParts[i] : 0;
+      if (t > c) return true;
+      if (t < c) return false;
+    }
+    return false;
+  }
+
   Future<void> _loadVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
@@ -39,7 +52,7 @@ class _AboutScreenState extends State<AboutScreen> {
         final data = json.decode(response.body);
         final tag = data['tag_name'] as String? ?? '';
         final url = data['html_url'] as String? ?? '';
-        if (mounted && tag.compareTo(_version) > 0) {
+        if (mounted && _isNewerVersion(tag, _version)) {
           final download = await showDialog<bool>(
             context: context, builder: (ctx) => AlertDialog(
               title: const Text('Update Available'),
