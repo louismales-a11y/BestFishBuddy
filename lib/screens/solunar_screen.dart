@@ -32,61 +32,46 @@ class _SolunarScreenState extends State<SolunarScreen> {
       _error = null;
     });
 
+    // Solunar and moon can be shown without GPS (default to 0,0)
+    final now = DateTime.now();
+    final moon = SolunarService.getMoonPhase(now);
+    final solunar = SolunarService.getSolunarTimes(now, _lat, _lng);
+    _moon = moon;
+    _solunar = solunar;
+
+    // Try to get GPS for more accurate solunar + weather
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() {
-          _error = 'Location services are disabled';
-          _loading = false;
-        });
-        return;
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission != LocationPermission.denied &&
+            permission != LocationPermission.deniedForever) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+              timeLimit: Duration(seconds: 5),
+            ),
+          );
+          _lat = pos.latitude;
+          _lng = pos.longitude;
+          // Recalc solunar with actual location
+          _solunar = SolunarService.getSolunarTimes(now, _lat, _lng);
+        }
       }
+    } catch (_) {
+      // GPS failed — using default coords, solunar is still useful
+    }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        setState(() {
-          _error = 'Location permission needed';
-          _loading = false;
-        });
-        return;
-      }
+    // Try weather (non-blocking — screen shows without it)
+    try {
+      _weather = await WeatherService.fetchWeather(_lat, _lng);
+    } catch (_) {}
 
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      _lat = pos.latitude;
-      _lng = pos.longitude;
-
-      final now = DateTime.now();
-      final moon = SolunarService.getMoonPhase(now);
-      final solunar =
-          SolunarService.getSolunarTimes(now, _lat, _lng);
-      final weather =
-          await WeatherService.fetchWeather(_lat, _lng);
-
-      if (mounted) {
-        setState(() {
-          _moon = moon;
-          _solunar = solunar;
-          _weather = weather;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to load: $e';
-          _loading = false;
-        });
-      }
+    if (mounted) {
+      setState(() => _loading = false);
     }
   }
 
@@ -154,6 +139,57 @@ class _SolunarScreenState extends State<SolunarScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
+
+                      // Weather right after rating — before moon
+                      if (_weather != null) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.wb_sunny,
+                                        color: Colors.amber.shade600, size: 36),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              '${(_weather!['temp'] as double).round()}°C',
+                                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w300)),
+                                          Text(
+                                            _weather!['condition'] as String? ?? '',
+                                            style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    _marineStat(Icons.air, _windArrow(_weather!['wind_deg'] as double? ?? 0) + ' ${(_weather!['wind_speed'] as double).toStringAsFixed(0)} km/h', Colors.lightBlue),
+                                    const SizedBox(width: 12),
+                                    _marineStat(Icons.wind_power, 'Gusts ${(_weather!['wind_gust'] as double? ?? 0).toStringAsFixed(0)} km/h', Colors.lightBlue.shade300),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    _marineStat(Icons.water_drop, '💧 ${_weather!['humidity']}%', Colors.blue.shade300),
+                                    const SizedBox(width: 12),
+                                    _marineStat(Icons.compress, '${_weather!['pressure']} hPa', Colors.grey.shade600),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
 
                       // Moon Phase card
                       _buildMoonCard(theme),
@@ -223,113 +259,38 @@ class _SolunarScreenState extends State<SolunarScreen> {
 
                       _buildTimeCard(
                         theme,
-                        'Major Period',
+                        'Major',
                         Icons.access_time,
                         '${_solunar!.major1Start} – ${_solunar!.major1End}',
                         Colors.green,
-                        'Moon overhead — best action!',
+                        'Best action',
                       ),
-                      const SizedBox(height: 8),
                       _buildTimeCard(
                         theme,
-                        'Major Period',
+                        'Major',
                         Icons.access_time,
                         '${_solunar!.major2Start} – ${_solunar!.major2End}',
                         Colors.green.shade700,
-                        'Moon underfoot — also great',
+                        'Good action',
                       ),
-                      const SizedBox(height: 8),
                       _buildTimeCard(
                         theme,
-                        'Minor Period',
+                        'Minor',
                         Icons.schedule,
                         '${_solunar!.minor1Start} – ${_solunar!.minor1End}',
                         Colors.amber.shade700,
-                        'Moonrise — good activity',
+                        'Moonrise',
                       ),
-                      const SizedBox(height: 8),
                       _buildTimeCard(
                         theme,
-                        'Minor Period',
+                        'Minor',
                         Icons.schedule,
                         '${_solunar!.minor2Start} – ${_solunar!.minor2End}',
                         Colors.amber.shade700,
-                        'Moonset — good activity',
+                        'Moonset',
                       ),
 
-                      const SizedBox(height: 16),
-
-                      // Weather summary if available
-                      if (_weather != null) ...[                      
-                        Text('Current Conditions',
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 8),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.wb_sunny,
-                                        color: Colors.amber.shade600,
-                                        size: 36),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                              '${(_weather!['temp'] as double).round()}°C',
-                                              style: const TextStyle(
-                                                  fontSize: 28,
-                                                  fontWeight:
-                                                      FontWeight.w300)),
-                                          Text(
-                                            _weather!['condition']
-                                                    as String? ??
-                                                '',
-                                            style: TextStyle(
-                                                color: theme
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withValues(
-                                                        alpha: 0.6)),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                // Wind & marine details
-                                Row(
-                                  children: [
-                                    _marineStat(
-                                        Icons.air, _windArrow(_weather!['wind_deg'] as double? ?? 0) + ' ${(_weather!['wind_speed'] as double).toStringAsFixed(0)} km/h', Colors.lightBlue),
-                                    const SizedBox(width: 12),
-                                    _marineStat(
-                                        Icons.wind_power, 'Gusts ${(_weather!['wind_gust'] as double? ?? 0).toStringAsFixed(0)} km/h', Colors.lightBlue.shade300),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    _marineStat(Icons.water_drop,
-                                        '💧 ${_weather!['humidity']}%',
-                                        Colors.blue.shade300),
-                                    const SizedBox(width: 12),
-                                    _marineStat(
-                                        Icons.compress, '${_weather!['pressure']} hPa', Colors.grey.shade600),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -623,26 +584,33 @@ class _SolunarScreenState extends State<SolunarScreen> {
 
   Widget _buildTimeCard(ThemeData theme, String label, IconData icon,
       String time, Color color, String hint) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.15),
-          radius: 22,
-          child: Icon(icon, color: color, size: 22),
-        ),
-        title: Text(label,
-            style: TextStyle(
-                fontWeight: FontWeight.w600, color: color)),
-        subtitle: Text(hint,
-            style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.5))),
-        trailing: Text(time,
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-                color: color)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: color)),
+                Text(hint,
+                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+              ],
+            ),
+          ),
+          Text(time,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: color)),
+        ],
       ),
     );
   }

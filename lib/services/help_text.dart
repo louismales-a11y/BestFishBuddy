@@ -231,11 +231,16 @@ const _helpEntries = <String, _HelpEntry>{
     icon: Icons.nights_stay,
     title: 'Best Fishing Times',
     body: 'Solunar-based predictions for the best fishing periods today.\n\n'
+        '⭐ **Today\'s Rating** — 0-10 score based on solunar & daylight overlap\n'
+        '🌡️ **Current Conditions** — temp, wind direction with arrows, gusts, humidity, pressure\n'
+        '🌙 **Moon Phase** — phase name, illumination %, age in days\n'
+        '🌅 **Sunrise / Sunset** — approximated from your GPS location\n'
+        '🌙 **Moonrise / Moonset** — displayed alongside solar times\n'
+        '📊 **24-Hour Timeline** — visual bar showing major/minor periods\n'
         '• Major periods (2 hours each) — moon overhead & underfoot\n'
-        '• Minor periods (1 hour each) — moonrise & moonset\n'
-        '• Fishing is generally best during major periods\n'
-        '• The moon phase and illumination are shown',
-    tips: 'Fish during major periods for the best results. '
+        '• Minor periods (1 hour each) — moonrise & moonset'
+,    tips: 'Wind direction arrows help you choose which side of the lake to fish. '
+        'Fish during major periods for the best results. '
         'New moon and full moon phases produce the most active feeding periods. '
         'Combine solunar times with dawn/dusk for peak action.',
   ),
@@ -314,5 +319,39 @@ const _helpEntries = <String, _HelpEntry>{
         '• Selecting a type auto-fills: name, target species, and tips\n'
         '• Edit the species list to match your specific lure\n'
         '• Tap "Add to Tackle Box" to save it',
+  ),
+  'prepare': _HelpEntry(
+    icon: Icons.checklist,
+    title: 'Prepare for Fishing',
+    body: 'A pre-trip checklist to make sure you\'re ready.\n\n'
+        '✅ **Add Anglers** — tap for instructions on adding anglers\n'
+        '✅ **Check Weather** — opens the 5-day forecast\n'
+        '⭐ **Best Fishing Times** — today\'s solunar rating\n'
+        '✅ **Set Up Tackle** — view and organize your tackle box\n'
+        '✅ **Review Fish ID** — browse the fish field guide\n'
+        '✅ **Check Map & Spots** — review saved fishing spots\n\n'
+        '🎣 **Start New Trip** — resets all tallies and counters',
+    tips: 'Items auto-check based on your data (e.g. anglers check once added). '
+        'Use the summary card at the bottom to see your readiness at a glance.',
+  ),
+  'about': _HelpEntry(
+    icon: Icons.info_outline,
+    title: 'About',
+    body: 'App version, description, and tech stack information.\n\n'
+        '• App version number\n'
+        '• Feature overview\n'
+        '• Built with: Flutter, Dart, SQLite, OpenStreetMap, more\n\n'
+        'Tight Lines, Be Safe! 🎣',
+  ),
+  'contact': _HelpEntry(
+    icon: Icons.mail_outline,
+    title: 'Contact',
+    body: 'Get in touch with Maison Louis Design.\n\n'
+        '💡 **Suggest a Feature** — opens your email app with subject pre-filled\n'
+        '🐛 **Report a Bug** — opens email with device info auto-included\n'
+        '   (model, OS, app version, screen size) to help diagnose issues\n\n'
+        'Your privacy is respected — no personal data is collected or shared.',
+    tips: 'Bug reports auto-include your device model and app version so issues '
+        'can be fixed faster. You control what additional info to write.',
   ),
 };

@@ -39,16 +39,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '  • "save" — done!',
     ),
     _OnboardPage(
+      icon: Icons.checklist,
+      title: 'Prepare for Fishing',
+      desc: 'Tap **Prepare for Fishing** in the ⋮ menu\n'
+          'for a pre-trip checklist:\n'
+          '  ✅ Add anglers, check weather & solunar\n'
+          '  ✅ Set up tackle, review fish ID\n'
+          '  ✅ Check map spots, start new trip\n'
+          'Everything you need before heading out!',
+    ),
+    _OnboardPage(
       icon: Icons.more_vert,
       title: 'More Features (⋮ menu)',
       desc: 'Tap the ⋮ menu (top-right) for:\n'
+          '  🎣 Prepare for Fishing checklist\n'
           '  🌤️ Weather & 5-day forecast\n'
-          '  🌙 Best Fishing Times (solunar)\n'
+          '  🌙 Solunar w/ wind, gusts & marine\n'
           '  🐟 Fish ID Field Guide\n'
           '  🎣 Tackle Box & Catalog\n'
           '  📅 Calendar & Statistics\n'
-          '  🖼️ Photo Gallery\n'
-          '  🌓 Dark mode & Themes',
+          '  🖼️ Photo Gallery / 🌓 Dark mode\n'
+          '  ℹ️ About & Contact / 💬 Suggest / 🐛 Report',
     ),
     _OnboardPage(
       icon: Icons.help_outline,

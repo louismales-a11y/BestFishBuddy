@@ -295,8 +295,20 @@ class MapScreenState extends State<MapScreen> {
   // ─── Directions ─────────────────────────────────────────────────────────
 
   void _openDirections(PlaceResult p) async {
-    final u = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving');
-    if (await canLaunchUrl(u)) { await launchUrl(u, mode: LaunchMode.externalApplication); } else { _err('Could not open maps'); }
+    // Try Google Maps URL first
+    final googleUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&travelmode=driving');
+    // Fallback: geo URI (works with any map app)
+    final geoUrl = Uri.parse('geo:${p.lat},${p.lng}?q=${p.lat},${p.lng}(${Uri.encodeComponent(p.name)})');
+    
+    try {
+      await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      try {
+        await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        _err('Could not open maps');
+      }
+    }
   }
 
   void _showPlaceSheet(PlaceResult p) {

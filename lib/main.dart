@@ -7,12 +7,15 @@ import 'screens/add_catch_screen.dart';
 import 'screens/catches_screen.dart';
 import 'screens/counter_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/prepare_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/forecast_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/solunar_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/fish_id_screen.dart';
+import 'screens/about_screen.dart';
+import 'screens/contact_screen.dart';
 import 'screens/tackle_box_screen.dart';
 import 'services/help_text.dart';
 import 'services/theme_provider.dart';
@@ -455,6 +458,11 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelected: (value) {
               switch (value) {
                 // ── Planning ──
+                case 'prepare':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const PrepareScreen()));
+                  break;
                 case 'weather':
                   Navigator.push(context,
                       MaterialPageRoute(
@@ -498,10 +506,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'theme':
                   _showThemePicker(context, tp);
                   break;
+                // ── About & Contact ──
+                case 'about':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const AboutScreen()));
+                  break;
+                case 'contact':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const ContactScreen()));
+                  break;
               }
             },
             itemBuilder: (ctx) => [
               // ── Planning ──
+              const PopupMenuItem(
+                value: 'prepare',
+                child: ListTile(
+                  leading: Icon(Icons.checklist),
+                  title: Text('Prepare for Fishing'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               const PopupMenuItem(
                 value: 'weather',
                 child: ListTile(
@@ -562,6 +590,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListTile(
                   leading: Icon(Icons.photo_library),
                   title: Text('Photo Gallery'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              // ── Appearance ──
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'about',
+                child: ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('About'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'contact',
+                child: ListTile(
+                  leading: Icon(Icons.mail_outline),
+                  title: Text('Contact'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
