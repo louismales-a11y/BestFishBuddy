@@ -343,6 +343,19 @@ const _helpEntries = <String, _HelpEntry>{
         '• Built with: Flutter, Dart, SQLite, OpenStreetMap, more\n\n'
         'Tight Lines, Be Safe! 🎣',
   ),
+  'cloud_sync': _HelpEntry(
+    icon: Icons.cloud_outlined,
+    title: 'Cloud Sync',
+    body: 'Backup and sync your catches across devices.\n\n'
+        '☁️ **Upload to Cloud** — sends all local catches to Firebase\n'
+        '☁️ **Download from Cloud** — pulls catches from Firebase and merges locally\n'
+        '• No login required — uses anonymous authentication\n'
+        '• Internet connection required\n'
+        '• Photos are not synced (coming soon)\n\n'
+        'If the cloud is unavailable, Firebase may not be configured yet.',
+    tips: 'Sync before switching devices to keep your data safe. '
+        'The app never crashes if cloud is unavailable — it just shows disconnected.',
+  ),
   'contact': _HelpEntry(
     icon: Icons.mail_outline,
     title: 'Contact',

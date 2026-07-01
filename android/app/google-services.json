@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "649755574010",
+    "project_id": "bestfishbuddy-bcd7e",
+    "storage_bucket": "bestfishbuddy-bcd7e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:649755574010:android:7c5fd250214d9da3b81343",
+        "android_client_info": {
+          "package_name": "com.bestfishbuddy.bestfishbuddy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJdZ8AQ008frEUWDPtjrzPo5hKv5ykxyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,7 +14,9 @@ import 'screens/gallery_screen.dart';
 import 'screens/solunar_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/fish_id_screen.dart';
+import 'services/cloud_sync_service.dart';
 import 'screens/about_screen.dart';
+import 'screens/cloud_sync_screen.dart';
 import 'screens/contact_screen.dart';
 import 'screens/tackle_box_screen.dart';
 import 'services/help_text.dart';
@@ -196,7 +198,8 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (_) {
       if (mounted) setState(() => _version = '1.0.0');
     }
-
+    // Initialize cloud sync (safe — won't crash if Firebase not configured)
+    await CloudSyncService.instance.init();
   }
 
   @override
@@ -506,6 +509,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'theme':
                   _showThemePicker(context, tp);
                   break;
+                // ── Cloud ──
+                case 'cloud_sync':
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const CloudSyncScreen()));
+                  break;
                 // ── About & Contact ──
                 case 'about':
                   Navigator.push(context,
@@ -590,6 +599,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: ListTile(
                   leading: Icon(Icons.photo_library),
                   title: Text('Photo Gallery'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              // ── Cloud ──
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'cloud_sync',
+                child: ListTile(
+                  leading: Icon(Icons.cloud_outlined),
+                  title: Text('Cloud Sync'),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
