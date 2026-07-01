@@ -347,10 +347,12 @@ const _helpEntries = <String, _HelpEntry>{
   ),
   'about': _HelpEntry(
     icon: Icons.info_outline,
-    title: 'About',
-    body: 'App version, description, and tech stack information.\n\n'
-        '• App version number\n'
-        '• Feature overview\n'
+    title: 'About & Updates',
+    body: 'App version, description, tech stack, and update checking.\n\n'
+        '• **Check for Updates** — tap the button to check GitHub for a newer version\n'
+        '• **Download** — if a new version is available, opens GitHub to download\n'
+        '• Updates install seamlessly (APK signed with permanent key)\n'
+        '• App version number displayed below the logo\n'
         '• Built with: Flutter, Dart, SQLite, OpenStreetMap, more\n\n'
         'Tight Lines, Be Safe! 🎣',
   ),
