@@ -94,6 +94,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Help is Everywhere',
       desc: 'Tap ❓ (top-right) on any screen\n'
           'for detailed help on that feature.\n\n'
+          '📱 **Check for Updates** on the About screen\n'
+          'to see if a newer version is available.\n\n'
           'Have a great fishing trip! 🎣',
       isLast: true,
     ),
