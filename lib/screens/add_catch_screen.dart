@@ -82,6 +82,8 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
       if (widget.initialAngler != null) _anglerCtrl.text = widget.initialAngler!;
       if (widget.initialSpecies != null) _speciesCtrl.text = widget.initialSpecies!;
     }
+    // Auto-fetch GPS location when form opens
+    Future.microtask(() => _getLocation());
   }
 
   @override
