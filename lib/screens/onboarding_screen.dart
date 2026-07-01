@@ -54,12 +54,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       desc: '**Cloud Sync** (⋮ menu > Cloud Sync):\n'
           '  ☁️ Back up catches to the cloud\n'
           '  ⬆️ Upload / ⬇️ Download / 🔗 Connect\n'
+          '  📸 Photos auto-backup to cloud storage\n'
           '  🔐 Anonymous auth — no login needed\n\n'
           '**Fish Together** (from Cloud Sync screen):\n'
           '  🎣 Start a session, share code with a buddy\n'
           '  💬 Real-time chat while fishing\n'
           '  📍 Share GPS location for emergencies\n'
           '  🚨 Emergency alerts with directions',
+    ),
+    _OnboardPage(
+      icon: Icons.star,
+      title: 'Stats, Badges & Achievements',
+      desc: '**Statistics** (⋮ menu > Statistics):\n'
+          '  📊 Charts, breakdowns, trends\n'
+          '  🏆 Personal records & insights\n'
+          '  ⭐ Badges: First Catch, Master Angler, \n'
+          '     Species Collector, Big Catch & more\n'
+          '  📤 Share your stats as an image\n\n'
+          '**Offline Mode:**\n'
+          '  ☁️ Weather data cached for offline use\n'
+          '  🔔 Push notifications for weather alerts',
     ),
     _OnboardPage(
       icon: Icons.more_vert,
@@ -70,7 +84,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           '  🌙 Solunar w/ wind, gusts & marine\n'
           '  🐟 Fish ID Field Guide\n'
           '  🎣 Tackle Box & Catalog\n'
-          '  📅 Calendar & Statistics\n'
+          '  📅 Calendar / 📊 Statistics & Badges\n'
           '  🖼️ Photo Gallery / 🌓 Dark mode\n'
           '  ℹ️ About & Contact / 💬 Suggest / 🐛 Report\n'
           '  ☁️ Cloud Sync & Fish Together',

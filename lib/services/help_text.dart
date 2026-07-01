@@ -18,7 +18,7 @@ void showHelp(BuildContext context, String feature) {
       expand: false,
       builder: (ctx, scrollCtrl) => ListView(
         controller: scrollCtrl,
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 32 + MediaQuery.of(ctx).padding.bottom + 40),
         children: [
           Center(
             child: Container(
@@ -261,14 +261,25 @@ const _helpEntries = <String, _HelpEntry>{
   ),
   'stats': _HelpEntry(
     icon: Icons.bar_chart,
-    title: 'Statistics',
-    body: 'See your fishing stats and achievements.\n\n'
+    title: 'Statistics & Achievements',
+    body: 'See your fishing stats, personal records, and achievements.\n\n'
+        '📊 **Stats:**\n'
         '• Total catch count\n'
-        '• Species breakdown — which fish you\'ve caught most\n'
-        '• Catches by month — see trends over time\n'
-        '• Top anglers — who catches the most\n'
-        '• Top locations — your best fishing spots\n'
-        '• Biggest catches by weight and length',
+        '• Species breakdown chart\n'
+        '• Catches by month bar chart\n'
+        '• Top anglers and locations\n'
+        '• Heaviest & longest catches\n\n'
+        '🏆 **Personal Records:**\n'
+        '• Most caught species\n'
+        '• Best month ever\n'
+        '• Average fish per month\n\n'
+        '⭐ **Achievements (Badges):**\n'
+        '• First Catch, Double Digits, One-Trip Wonder\n'
+        '• Species Collector / Hunter / Master\n'
+        '• Master Angler, Legendary Angler\n'
+        '• Big Catch, Monster Catch, Top Rod\n'
+        'Earned automatically as you fish!\n\n'
+        '📤 **Share** — tap the share icon to share your stats as an image',
   ),
   'tackle_box': _HelpEntry(
     icon: Icons.inventory_2,

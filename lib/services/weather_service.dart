@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
+import 'cache_service.dart';
 
 class WeatherService {
-  /// Current weather at [lat], [lng].
+  /// Current weather at [lat], [lng]. Returns cached data if offline.
   static Future<Map<String, dynamic>?> fetchWeather(
       double lat, double lng) async {
+    final cacheKey = 'weather_${lat.toStringAsFixed(1)}_${lng.toStringAsFixed(1)}';
     try {
       final uri = Uri.parse(
           'https://api.openweathermap.org/data/2.5/weather'
@@ -15,7 +17,7 @@ class WeatherService {
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return {
+        final result = {
           'temp': (data['main']['temp'] as num).toDouble(),
           'feels_like': (data['main']['feels_like'] as num).toDouble(),
           'temp_min': (data['main']['temp_min'] as num).toDouble(),
@@ -29,8 +31,14 @@ class WeatherService {
           'icon': data['weather'][0]['icon'] as String? ?? '',
           'city': data['name'] as String? ?? '',
         };
+        // Cache for offline use
+        await CacheService.instance.put(cacheKey, result);
+        return result;
       }
-    } catch (_) {}
+    } catch (_) {
+      // Offline — try cache
+      return CacheService.instance.get<Map>(cacheKey, maxAge: const Duration(hours: 3)) as Map<String, dynamic>?;
+    }
     return null;
   }
 

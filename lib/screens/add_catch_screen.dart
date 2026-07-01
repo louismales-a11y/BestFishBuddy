@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/catch.dart';
 import '../services/database_service.dart';
 import '../services/help_text.dart';
+import '../services/photo_backup_service.dart';
 import '../services/weather_service.dart';
 import 'selfie_camera_screen.dart';
 
@@ -277,6 +278,8 @@ class _AddCatchScreenState extends State<AddCatchScreen> {
       String? savedPhotoPath;
       if (_photoFile != null) {
         savedPhotoPath = await _savePhoto(_photoFile!);
+        // Back up photo to Firebase Storage
+        final url = await PhotoBackupService.instance.uploadPhoto(_photoFile!.path, catchId: '${DateTime.now().millisecondsSinceEpoch}');
       }
 
       final catchItem = Catch(

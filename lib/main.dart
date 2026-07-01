@@ -15,10 +15,10 @@ import 'screens/solunar_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/fish_id_screen.dart';
 import 'services/cloud_sync_service.dart';
+import 'services/notification_service.dart';
 import 'screens/about_screen.dart';
 import 'screens/cloud_sync_screen.dart';
 import 'screens/contact_screen.dart';
-import 'screens/session_screen.dart';
 import 'screens/tackle_box_screen.dart';
 import 'services/help_text.dart';
 import 'services/theme_provider.dart';
@@ -201,6 +201,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     // Initialize cloud sync (safe — won't crash if Firebase not configured)
     await CloudSyncService.instance.init();
+    await NotificationService.instance.init();
   }
 
   @override

@@ -1,0 +1,68 @@
+import '../services/database_service.dart';
+
+/// Achievement badges earned by the user.
+class BadgeService {
+  static final BadgeService instance = BadgeService._();
+  BadgeService._();
+
+  /// Calculate earned badges based on catch data.
+  Future<List<Badge>> getBadges() async {
+    final db = DatabaseService.instance;
+    final catches = await db.getCatches();
+    final speciesSet = catches.map((c) => c.species.toLowerCase()).toSet();
+    final speciesCount = speciesSet.length;
+    final totalCatches = catches.length;
+    final topAnglers = await db.topAnglers();
+    final biggest = await db.biggestByWeight();
+
+    final badges = <Badge>[];
+
+    // First Catch
+    if (totalCatches >= 1) badges.add(Badge('🎣', 'First Catch!', 'You caught your first fish', true));
+
+    // Double Digits
+    if (totalCatches >= 10) badges.add(Badge('🔟', 'Double Digits', 'Caught 10 fish total', true));
+
+    // One-Trip Wonder
+    final trips = <String>{};
+    for (final c in catches) {
+      if (c.tripName != null && c.tripName!.isNotEmpty) trips.add(c.tripName!);
+    }
+    if (catches.length >= 5 && trips.isEmpty) {
+      badges.add(Badge('🏆', 'One-Trip Wonder', 'Caught 5+ fish in a single trip', true));
+    }
+
+    // Species Collector
+    if (speciesCount >= 3) badges.add(Badge('🐟', 'Species Collector', 'Caught 3 different species', true));
+    if (speciesCount >= 5) badges.add(Badge('🐠', 'Species Hunter', 'Caught 5 different species', true));
+    if (speciesCount >= 10) badges.add(Badge('🏅', 'Species Master', 'Caught 10 different species', true));
+
+    // Master Angler
+    if (totalCatches >= 25) badges.add(Badge('⭐', 'Master Angler', 'Caught 25 fish total', true));
+    if (totalCatches >= 100) badges.add(Badge('👑', 'Legendary Angler', 'Caught 100 fish total', true));
+
+    // Big Catch
+    if (biggest != null && biggest.weight != null && biggest.weight! >= 5) {
+      badges.add(Badge('📏', 'Big Catch!', 'Caught a 5kg+ fish', true));
+    }
+    if (biggest != null && biggest.weight != null && biggest.weight! >= 10) {
+      badges.add(Badge('🐋', 'Monster Catch!', 'Caught a 10kg+ fish', true));
+    }
+
+    // Top Rod
+    if (topAnglers.isNotEmpty) {
+      badges.add(Badge('🎯', 'Top Rod', 'Leading the leaderboard', true));
+    }
+
+    return badges;
+  }
+}
+
+class Badge {
+  final String emoji;
+  final String name;
+  final String description;
+  final bool earned;
+
+  const Badge(this.emoji, this.name, this.description, this.earned);
+}
