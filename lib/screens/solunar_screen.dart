@@ -268,43 +268,61 @@ class _SolunarScreenState extends State<SolunarScreen> {
                         Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Row(
+                            child: Column(
                               children: [
-                                Icon(Icons.wb_sunny,
-                                    color: Colors.amber.shade600,
-                                    size: 40),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                Row(
                                   children: [
-                                    Text(
-                                        '${(_weather!['temp'] as double).round()}°C',
-                                        style: const TextStyle(
-                                            fontSize: 28,
-                                            fontWeight:
-                                                FontWeight.w300)),
-                                    Text(
-                                      _weather!['condition'] as String? ??
-                                          '',
-                                      style: TextStyle(
-                                          color: theme
-                                              .colorScheme.onSurface
-                                              .withValues(alpha: 0.6)),
+                                    Icon(Icons.wb_sunny,
+                                        color: Colors.amber.shade600,
+                                        size: 36),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                              '${(_weather!['temp'] as double).round()}°C',
+                                              style: const TextStyle(
+                                                  fontSize: 28,
+                                                  fontWeight:
+                                                      FontWeight.w300)),
+                                          Text(
+                                            _weather!['condition']
+                                                    as String? ??
+                                                '',
+                                            style: TextStyle(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(
+                                                        alpha: 0.6)),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const Spacer(),
-                                Column(
+                                const SizedBox(height: 10),
+                                // Wind & marine details
+                                Row(
                                   children: [
-                                    Text(
+                                    _marineStat(
+                                        Icons.air, _windArrow(_weather!['wind_deg'] as double? ?? 0) + ' ${(_weather!['wind_speed'] as double).toStringAsFixed(0)} km/h', Colors.lightBlue),
+                                    const SizedBox(width: 12),
+                                    _marineStat(
+                                        Icons.wind_power, 'Gusts ${(_weather!['wind_gust'] as double? ?? 0).toStringAsFixed(0)} km/h', Colors.lightBlue.shade300),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    _marineStat(Icons.water_drop,
                                         '💧 ${_weather!['humidity']}%',
-                                        style: const TextStyle(
-                                            fontSize: 14)),
-                                    Text(
-                                        '💨 ${(_weather!['wind_speed'] as double).toStringAsFixed(1)} m/s',
-                                        style: const TextStyle(
-                                            fontSize: 14)),
+                                        Colors.blue.shade300),
+                                    const SizedBox(width: 12),
+                                    _marineStat(
+                                        Icons.compress, '${_weather!['pressure']} hPa', Colors.grey.shade600),
                                   ],
                                 ),
                               ],
@@ -482,6 +500,30 @@ class _SolunarScreenState extends State<SolunarScreen> {
         const SizedBox(width: 4),
         Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
       ],
+    );
+  }
+
+  /// Convert wind degrees to compass direction with arrow
+  String _windArrow(double deg) {
+    const dirs = ['↑ N', '↗ NE', '→ E', '↘ SE', '↓ S', '↙ SW', '← W', '↖ NW'];
+    final index = ((deg + 22.5) % 360 / 45).floor();
+    return dirs[index % 8];
+  }
+
+  Widget _marineStat(IconData icon, String text, Color color) {
+    return Expanded(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(text,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+          ),
+        ],
+      ),
     );
   }
 

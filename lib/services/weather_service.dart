@@ -23,6 +23,8 @@ class WeatherService {
           'humidity': data['main']['humidity'] as int? ?? 0,
           'pressure': data['main']['pressure'] as int? ?? 0,
           'wind_speed': (data['wind']['speed'] as num?)?.toDouble() ?? 0,
+          'wind_deg': (data['wind']['deg'] as num?)?.toDouble() ?? 0,
+          'wind_gust': (data['wind']['gust'] as num?)?.toDouble() ?? 0,
           'condition': data['weather'][0]['description'] as String? ?? '',
           'icon': data['weather'][0]['icon'] as String? ?? '',
           'city': data['name'] as String? ?? '',
