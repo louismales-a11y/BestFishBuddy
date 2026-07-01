@@ -113,25 +113,63 @@ class CatchesScreenState extends State<CatchesScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: Colors.grey)),
             const SizedBox(height: 12),
-            // Sample catch card
-            _CatchCard(
-              catch_: Catch(
-                angler: 'You',
-                species: 'Largemouth Bass',
-                location: 'Lake Michigan',
-                weight: 4.5,
-                weightUnit: 'kg',
-                length: 58,
-                lengthUnit: 'cm',
-                latitude: 43.5,
-                longitude: -87.0,
-                weatherTemp: 22,
-                weatherCondition: 'Sunny',
-                lure: 'Spinnerbait',
-                caughtAt: DateTime.now().subtract(const Duration(days: 1)),
+            // Sample catch card with photo
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Photo
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/sample_bass.jpg',
+                        width: 52,
+                        height: 52,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 52, height: 52,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.set_meal,
+                              color: Theme.of(context).colorScheme.primary, size: 26),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Largemouth Bass',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 2),
+                          Text('You', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              _sampleStat(Icons.monitor_weight, '4.5 kg'),
+                              const SizedBox(width: 12),
+                              _sampleStat(Icons.straighten, '58 cm'),
+                              const SizedBox(width: 12),
+                              _sampleStat(Icons.wb_sunny, 'Sunny'),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text('📍 Lake Michigan',
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              onTap: () {},
-              onDelete: () {},
             ),
             const SizedBox(height: 8),
             Text('Use voice: tap 🎤 below, say "jason caught a 5 lb pike at Lake Erie"',
@@ -232,6 +270,20 @@ class CatchesScreenState extends State<CatchesScreen> {
         cancelOnError: true,
         listenFor: const Duration(minutes: 10),
       ),
+    );
+  }
+
+  Widget _sampleStat(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 3),
+        Text(text,
+            style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+      ],
     );
   }
 
