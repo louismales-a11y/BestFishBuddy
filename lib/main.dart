@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/add_catch_screen.dart';
 import 'screens/catches_screen.dart';
 import 'screens/counter_screen.dart';
@@ -16,6 +17,7 @@ import 'screens/tackle_box_screen.dart';
 import 'services/help_text.dart';
 import 'services/theme_provider.dart';
 import 'services/widget_service.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -191,6 +193,17 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) setState(() => _version = info.version);
     } catch (_) {
       if (mounted) setState(() => _version = '1.0.0');
+    }
+    // Check if user has seen onboarding
+    final prefs = await SharedPreferences.getInstance();
+    final onboarded = prefs.getBool('onboarding_done') ?? false;
+    if (!onboarded && mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        useSafeArea: false,
+        builder: (_) => const OnboardingScreen(),
+      );
     }
     // Update home screen widget with latest data
     WidgetService.updateWidget();
